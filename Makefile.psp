@@ -1,0 +1,71 @@
+PSPSDK=$(shell psp-config --pspsdk-path)
+
+PSPAPP=psp
+LSP=psp_aux/libspectrum
+LMZ=psp_aux/libminizip
+PSPLIB=psp_aux/libpsp
+
+PSP_FW_VERSION=200
+export PSP_FW_VERSION
+
+PSP_APP_NAME=Fuse PSP
+PSP_APP_VER=0.10.0.21
+
+TARGET=fusepsp
+EXTRA_TARGETS=EBOOT.PBP
+PSP_EBOOT_TITLE=$(PSP_APP_NAME) $(PSP_APP_VER)
+PSP_EBOOT_ICON=ui/psp/fuse-icon.png
+
+BUILD_FUSE=debugger/breakpoint.o debugger/command.o debugger/commandl.o \
+           debugger/commandy.o debugger/debugger.o debugger/disassemble.o \
+           debugger/expression.o debugger/event.o debugger/variable.o \
+           z80/z80.o z80/z80_ops.o \
+           pokefinder/pokefinder.o \
+           unittests/unittests.o \
+           machines/pentagon1024.o machines/pentagon512.o machines/pentagon.o \
+           machines/scorpion.o machines/spec128.o machines/spec16.o \
+           machines/spec48.o machines/specplus2a.o machines/specplus2.o \
+           machines/specplus3.o machines/specplus3e.o machines/spec_se.o \
+           machines/tc2048.o machines/tc2068.o machines/ts2068.o \
+           disk/beta.o disk/crc.o disk/disk.o disk/fdd.o disk/plusd.o \
+           disk/wd_fdc.o disk/upd_fdc.o \
+           ay.o dck.o display.o divide.o ide.o if1.o \
+           if2.o input.o joystick.o kempmouse.o keyboard.o loader.o \
+           machine.o memory.o module.o periph.o printer.o profile.o \
+           psg.o scld.o screenshot.o settings.o simpleide.o slt.o \
+           snapshot.o sound.o ui.o uidisplay.o ula.o utils.o zxatasp.o \
+           zxcf.o timer/timer.o event.o rzx.o spectrum.o tape.o mempool.o \
+           fuse.o compat/dirname.o compat/psp/file.o \
+           ui/scaler/scaler.o ui/scaler/scalers16.o ui/scaler/scalers32.o \
+           sound/sfifo.o
+BUILD_PORT=ui/psp/keysyms.o timer/psp.o ui/psp/paths.o ui/psp/osname.o \
+           ui/psp/pspui.o ui/psp/pspdisplay.o ui/psp/debugger.o \
+           sound/pspsound.o ui/psp/pspjoystick.o
+
+OBJS=$(BUILD_FUSE) $(BUILD_PORT)
+
+DEFINES=-DFUSEDATADIR="\"system\"" -DSOUND_BUFFER_SIZE=368 \
+        -DPATH_MAX=2048
+BASE_DEFS=-DPSP -DPSP_APP_VER=\"$(PSP_APP_VER)\" -DPSP_APP_NAME="\"$(PSP_APP_NAME)\""
+CFLAGS=-O2 -G0 -Wall $(BASE_DEFS) $(DEFINES)
+CXXFLAGS=$(CFLAGS) -fno-exceptions -fno-rtti
+ASFLAGS=$(CFLAGS)
+INCDIR=. $(PSPLIB) $(LSP) $(MZLIB) $(LMZ) 
+LIBDIR=$(PSPLIB) $(LSP) $(LMZ) 
+LIBS=-lminizip -lspectrum -lpsplib -lpng -lpspgu -lpsppower \
+     -lz -lm -lc -lpspaudio -lpsprtc -lpspwlan -lpspnet_adhoc \
+     -lpspnet_adhocctl -lpspnet_adhocmatching
+
+all: build_libs
+clean: clean_libs
+
+include $(PSPSDK)/lib/build.mak
+
+build_libs:
+	cd $(PSPLIB) ; $(MAKE)
+	cd $(LSP) ; $(MAKE) -f Makefile.psp
+	cd $(LMZ) ; $(MAKE) -f Makefile.psp
+clean_libs:
+	cd $(PSPLIB) ; $(MAKE) clean
+	cd $(LSP) ; $(MAKE) -f Makefile.psp clean
+	cd $(LMZ) ; $(MAKE) -f Makefile.psp clean
