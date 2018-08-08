@@ -1,7 +1,5 @@
 /* libspectrum.c: Some general routines
-   Copyright (c) 2001-2004 Philip Kendall, Darren Salt, Fredrick Meunier
-
-   $Id: libspectrum.c 3943 2009-01-10 14:24:56Z pak21 $
+   Copyright (c) 2001-2015 Philip Kendall, Darren Salt, Fredrick Meunier
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -36,7 +34,7 @@
 #include <gcrypt.h>
 
 /* The version of libgcrypt that we need */
-static const char *MIN_GCRYPT_VERSION = "1.1.42";
+static const char * const MIN_GCRYPT_VERSION = "1.1.42";
 
 #endif				/* #ifdef HAVE_GCRYPT_H */
 
@@ -119,6 +117,15 @@ libspectrum_init( void )
   libspectrum_init_bits_set();
 
   return LIBSPECTRUM_ERROR_NONE;
+}
+
+void
+libspectrum_end( void )
+{
+#ifndef HAVE_LIB_GLIB
+  libspectrum_slist_cleanup();
+  libspectrum_hashtable_cleanup();
+#endif				/* #ifndef HAVE_LIB_GLIB */
 }
 
 #ifdef HAVE_GCRYPT_H
@@ -223,10 +230,12 @@ libspectrum_machine_name( libspectrum_machine type )
   switch( type ) {
   case LIBSPECTRUM_MACHINE_16:       return "Spectrum 16K";
   case LIBSPECTRUM_MACHINE_48:       return "Spectrum 48K";
+  case LIBSPECTRUM_MACHINE_48_NTSC:  return "Spectrum 48K (NTSC)";
   case LIBSPECTRUM_MACHINE_TC2048:   return "Timex TC2048";
   case LIBSPECTRUM_MACHINE_TC2068:   return "Timex TC2068";
   case LIBSPECTRUM_MACHINE_TS2068:   return "Timex TS2068";
   case LIBSPECTRUM_MACHINE_128:      return "Spectrum 128K";
+  case LIBSPECTRUM_MACHINE_128E:     return "Spectrum 128Ke";
   case LIBSPECTRUM_MACHINE_PLUS2:    return "Spectrum +2";
   case LIBSPECTRUM_MACHINE_PENT:     return "Pentagon 128K";
   case LIBSPECTRUM_MACHINE_PENT512:  return "Pentagon 512K";
@@ -286,7 +295,7 @@ libspectrum_machine_capabilities( libspectrum_machine type )
   switch( type ) {
   case LIBSPECTRUM_MACHINE_128: case LIBSPECTRUM_MACHINE_PLUS2:
   case LIBSPECTRUM_MACHINE_PLUS2A: case LIBSPECTRUM_MACHINE_PLUS3:
-  case LIBSPECTRUM_MACHINE_PLUS3E:
+  case LIBSPECTRUM_MACHINE_PLUS3E: case LIBSPECTRUM_MACHINE_128E:
   case LIBSPECTRUM_MACHINE_TC2068: case LIBSPECTRUM_MACHINE_TS2068:
   case LIBSPECTRUM_MACHINE_PENT:
   case LIBSPECTRUM_MACHINE_PENT512: case LIBSPECTRUM_MACHINE_PENT1024:
@@ -301,7 +310,7 @@ libspectrum_machine_capabilities( libspectrum_machine type )
   switch( type ) {
   case LIBSPECTRUM_MACHINE_128: case LIBSPECTRUM_MACHINE_PLUS2:
   case LIBSPECTRUM_MACHINE_PLUS2A: case LIBSPECTRUM_MACHINE_PLUS3:
-  case LIBSPECTRUM_MACHINE_PLUS3E:
+  case LIBSPECTRUM_MACHINE_PLUS3E: case LIBSPECTRUM_MACHINE_128E:
   case LIBSPECTRUM_MACHINE_PENT:
   case LIBSPECTRUM_MACHINE_PENT512: case LIBSPECTRUM_MACHINE_PENT1024:
   case LIBSPECTRUM_MACHINE_SCORP:
@@ -315,7 +324,7 @@ libspectrum_machine_capabilities( libspectrum_machine type )
   /* +3 Spectrum-style 0x1ffd memory paging */
   switch( type ) {
   case LIBSPECTRUM_MACHINE_PLUS2A: case LIBSPECTRUM_MACHINE_PLUS3:
-  case LIBSPECTRUM_MACHINE_PLUS3E:
+  case LIBSPECTRUM_MACHINE_PLUS3E: case LIBSPECTRUM_MACHINE_128E:
     capabilities |= LIBSPECTRUM_MACHINE_CAPABILITY_PLUS3_MEMORY; break;
   default:
     break;
@@ -347,7 +356,7 @@ libspectrum_machine_capabilities( libspectrum_machine type )
     break;
   }
 
-  /* TRDOS-style disk */
+  /* Built-in TRDOS-style disk */
   switch( type ) {
   case LIBSPECTRUM_MACHINE_PENT:
   case LIBSPECTRUM_MACHINE_PENT512: case LIBSPECTRUM_MACHINE_PENT1024:
@@ -369,6 +378,7 @@ libspectrum_machine_capabilities( libspectrum_machine type )
   switch( type ) {
   case LIBSPECTRUM_MACHINE_PLUS2: case LIBSPECTRUM_MACHINE_PLUS2A:
   case LIBSPECTRUM_MACHINE_PLUS3: case LIBSPECTRUM_MACHINE_PLUS3E:
+  case LIBSPECTRUM_MACHINE_128E:
     capabilities |= LIBSPECTRUM_MACHINE_CAPABILITY_SINCLAIR_JOYSTICK; break;
   default:
     break;
@@ -409,6 +419,7 @@ libspectrum_machine_capabilities( libspectrum_machine type )
 
   /* NTSC display */
   switch( type ) {
+  case LIBSPECTRUM_MACHINE_48_NTSC:
   case LIBSPECTRUM_MACHINE_TS2068:
     capabilities |= LIBSPECTRUM_MACHINE_CAPABILITY_NTSC; break;
   default:
@@ -461,9 +472,11 @@ libspectrum_identify_file_with_class(
   error = libspectrum_identify_file_with_class( type, libspectrum_class,
 						new_filename, new_buffer,
 						new_length );
-  if( error ) return error;
 
+  /* new_filename or buffer will be allocated in libspectrum_uncompress_file */
   libspectrum_free( new_filename ); libspectrum_free( new_buffer );
+
+  if( error ) return error;
 
   return LIBSPECTRUM_ERROR_NONE;
 }
@@ -522,6 +535,7 @@ libspectrum_identify_file_raw( libspectrum_id_t *type, const char *filename,
       { LIBSPECTRUM_ID_TAPE_LTP,      "ltp", 3, "\x11\0\0",	    0, 3, 1 },
       { LIBSPECTRUM_ID_TAPE_TZX,      "tzx", 3, "ZXTape!",	    0, 7, 4 },
       { LIBSPECTRUM_ID_TAPE_WARAJEVO, "tap", 2, "\xff\xff\xff\xff", 8, 4, 2 },
+      { LIBSPECTRUM_ID_TAPE_PZX,      "pzx", 3, "PZXT",		    0, 4, 4 },
 
       { LIBSPECTRUM_ID_DISK_SCL,      "scl", 3, "SINCLAIR",         0, 8, 4 },
       { LIBSPECTRUM_ID_DISK_TRD,      "trd", 3, NULL,		    0, 0, 0 },
@@ -530,6 +544,7 @@ libspectrum_identify_file_raw( libspectrum_id_t *type, const char *filename,
 
       { LIBSPECTRUM_ID_COMPRESSED_BZ2,"bz2", 3, "BZh",		    0, 3, 4 },
       { LIBSPECTRUM_ID_COMPRESSED_GZ, "gz",  3, "\x1f\x8b",	    0, 2, 4 },
+      { LIBSPECTRUM_ID_COMPRESSED_ZIP,"zip", 3, "PK\x03\x04",	    0, 4, 4 },
 
       { LIBSPECTRUM_ID_TAPE_Z80EM,    "raw", 1, "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0Raw tape sample",  0, 64, 0 },
       { LIBSPECTRUM_ID_TAPE_CSW,      "csw", 2, "Compressed Square Wave\x1a",  0, 23, 4 },
@@ -546,6 +561,17 @@ libspectrum_identify_file_raw( libspectrum_id_t *type, const char *filename,
       { LIBSPECTRUM_ID_DISK_SAD,      "sad", 3, "Aley's disk backup", 0, 18, 4 },
       { LIBSPECTRUM_ID_DISK_TD0,      "td0", 3, "TD",               0, 2, 4 },
       { LIBSPECTRUM_ID_DISK_TD0,      "td0", 3, "td",               0, 2, 4 },
+
+      { LIBSPECTRUM_ID_DISK_OPD,      "opd", 3, NULL,		    0, 0, 0 },
+      { LIBSPECTRUM_ID_DISK_OPD,      "opu", 3, NULL,		    0, 0, 0 },
+
+      { LIBSPECTRUM_ID_DISK_D80,      "d80", 3, NULL,		    0, 0, 0 },
+      { LIBSPECTRUM_ID_DISK_D80,      "d40", 3, NULL,		    0, 0, 0 },
+
+      { LIBSPECTRUM_ID_AUX_POK,       "pok", 3, NULL,		    0, 0, 0 },
+
+      { LIBSPECTRUM_ID_SCREEN_SCR,    "scr", 3, NULL,		    0, 0, 0 },
+      { LIBSPECTRUM_ID_SCREEN_MLT,    "mlt", 3, NULL,		    0, 0, 0 },
 
       { -1, NULL, 0, NULL, 0, 0, 0 }, /* End marker */
 
@@ -658,6 +684,7 @@ libspectrum_identify_class( libspectrum_class_t *libspectrum_class,
   case LIBSPECTRUM_ID_COMPRESSED_BZ2:
   case LIBSPECTRUM_ID_COMPRESSED_GZ:
   case LIBSPECTRUM_ID_COMPRESSED_XFD:
+  case LIBSPECTRUM_ID_COMPRESSED_ZIP:
     *libspectrum_class = LIBSPECTRUM_CLASS_COMPRESSED; return 0;
 
   case LIBSPECTRUM_ID_DISK_DSK:
@@ -668,6 +695,12 @@ libspectrum_identify_class( libspectrum_class_t *libspectrum_class,
   case LIBSPECTRUM_ID_DISK_IMG:
   case LIBSPECTRUM_ID_DISK_MGT:
     *libspectrum_class = LIBSPECTRUM_CLASS_DISK_PLUSD; return 0;
+
+  case LIBSPECTRUM_ID_DISK_OPD:
+    *libspectrum_class = LIBSPECTRUM_CLASS_DISK_OPUS; return 0;
+
+  case LIBSPECTRUM_ID_DISK_D80:
+    *libspectrum_class = LIBSPECTRUM_CLASS_DISK_DIDAKTIK; return 0;
 
   case LIBSPECTRUM_ID_DISK_SCL:
   case LIBSPECTRUM_ID_DISK_TRD:
@@ -700,6 +733,7 @@ libspectrum_identify_class( libspectrum_class_t *libspectrum_class,
   case LIBSPECTRUM_ID_TAPE_Z80EM:
   case LIBSPECTRUM_ID_TAPE_CSW:
   case LIBSPECTRUM_ID_TAPE_WAV:
+  case LIBSPECTRUM_ID_TAPE_PZX:
     *libspectrum_class = LIBSPECTRUM_CLASS_TAPE; return 0;
 
   case LIBSPECTRUM_ID_CARTRIDGE_IF2:
@@ -710,6 +744,13 @@ libspectrum_identify_class( libspectrum_class_t *libspectrum_class,
   case LIBSPECTRUM_ID_DISK_SAD:
   case LIBSPECTRUM_ID_DISK_TD0:
     *libspectrum_class = LIBSPECTRUM_CLASS_DISK_GENERIC; return 0;
+
+  case LIBSPECTRUM_ID_AUX_POK:
+    *libspectrum_class = LIBSPECTRUM_CLASS_AUXILIARY; return 0;
+
+  case LIBSPECTRUM_ID_SCREEN_MLT:
+  case LIBSPECTRUM_ID_SCREEN_SCR:
+    *libspectrum_class = LIBSPECTRUM_CLASS_SCREENSHOT; return 0;
 
   }
 
@@ -810,6 +851,34 @@ libspectrum_uncompress_file( unsigned char **new_buffer, size_t *new_length,
 
     break;
 
+  case LIBSPECTRUM_ID_COMPRESSED_ZIP:
+
+#ifdef HAVE_ZLIB_H
+    if( new_filename && *new_filename ) {
+      if( strlen( *new_filename ) >= 4 &&
+          !strcasecmp( &(*new_filename)[ strlen( *new_filename ) - 4 ],
+                       ".zip" ) )
+      (*new_filename)[ strlen( *new_filename ) - 4 ] = '\0';
+    }
+
+    error = libspectrum_zip_blind_read( old_buffer, old_length,
+                                        new_buffer, new_length );
+    if( error ) {
+      if( new_filename ) libspectrum_free( *new_filename );
+      return error;
+    }
+
+#else				/* #ifdef HAVE_ZLIB_H */
+
+    libspectrum_print_error( LIBSPECTRUM_ERROR_UNKNOWN,
+                             "zlib not available to decompress zipped file" );
+    if( new_filename ) libspectrum_free( *new_filename );
+    return LIBSPECTRUM_ERROR_UNKNOWN;
+
+#endif				/* #ifdef HAVE_ZLIB_H */
+
+    break;
+
 #if defined AMIGA || defined __MORPHOS__
   case LIBSPECTRUM_ID_COMPRESSED_XFD:
     {
@@ -844,7 +913,7 @@ libspectrum_uncompress_file( unsigned char **new_buffer, size_t *new_length,
 #else				/* #ifndef __MORPHOS__ */
               if( xfdDecrunchBuffer( xfdobj ) ) {
 #endif				/* #ifndef __MORPHOS__ */
-                *new_buffer = libspectrum_malloc( xfdobj->xfdbi_TargetBufSaveLen );
+                *new_buffer = libspectrum_new( char, xfdobj->xfdbi_TargetBufSaveLen );
                 *new_length = xfdobj->xfdbi_TargetBufSaveLen;
                 memcpy( *new_buffer, xfdobj->xfdbi_TargetBuffer, *new_length );
 #ifndef __MORPHOS__
@@ -894,22 +963,21 @@ libspectrum_uncompress_file( unsigned char **new_buffer, size_t *new_length,
 }
 
 /* Ensure there is room for `requested' characters after the current
-   position `ptr' in `buffer'. If not, realloc() and update the
+   position `ptr' in `buffer'. If not, renew() and update the
    pointers as necessary */
 void
 libspectrum_make_room( libspectrum_byte **dest, size_t requested,
 		       libspectrum_byte **ptr, size_t *allocated )
 {
-  size_t current_length;
-
-  current_length = *ptr - *dest;
+  size_t current_length = 0;
 
   if( *allocated == 0 ) {
 
     (*allocated) = requested;
-    *dest = libspectrum_malloc( requested * sizeof( **dest ) );
+    *dest = libspectrum_new( libspectrum_byte, requested );
 
   } else {
+    current_length = *ptr - *dest;
 
     /* If there's already enough room here, just return */
     if( current_length + requested <= (*allocated) ) return;
@@ -921,7 +989,7 @@ libspectrum_make_room( libspectrum_byte **dest, size_t requested,
       current_length + requested :
       2 * (*allocated);
 
-    *dest = libspectrum_realloc( *dest, *allocated * sizeof( **dest ) );
+    *dest = libspectrum_renew( libspectrum_byte, *dest, *allocated );
   }
 
   /* Update the secondary pointer to the block */

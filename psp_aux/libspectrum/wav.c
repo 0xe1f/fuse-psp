@@ -1,7 +1,5 @@
 /* wav.c: Routines for handling WAV raw audio files
-   Copyright (c) 2007 Fredrick Meunier
-
-   $Id: wav.c 3708 2008-07-01 08:07:01Z pak21 $
+   Copyright (c) 2007-2015 Fredrick Meunier
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -38,6 +36,7 @@ libspectrum_wav_read( libspectrum_tape *tape, const char *filename )
 {
   libspectrum_byte *buffer; size_t length;
   libspectrum_byte *tape_buffer; size_t tape_length;
+  size_t data_length;
   libspectrum_tape_block *block = NULL;
   int frames;
 
@@ -73,12 +72,22 @@ libspectrum_wav_read( libspectrum_tape *tape, const char *filename )
     return LIBSPECTRUM_ERROR_LOGIC;
   }
 
+  if( afSetVirtualChannels( handle, track, 1 ) ) {
+    afCloseFile( handle );
+    libspectrum_print_error(
+      LIBSPECTRUM_ERROR_LOGIC,
+      "libspectrum_wav_read: audiofile failed to set virtual channel count"
+    );
+    return LIBSPECTRUM_ERROR_LOGIC;
+  }
+
   length = afGetFrameCount( handle, track );
 
   tape_length = length;
   if( tape_length%8 ) tape_length += 8 - (tape_length%8);
 
-  buffer = libspectrum_calloc( tape_length, sizeof( *buffer ) );
+  buffer = libspectrum_new0( libspectrum_byte,
+			     tape_length * afGetChannels(handle, track) );
 
   frames = afReadFrames( handle, track, buffer, length );
   if( frames == -1 ) {
@@ -117,11 +126,14 @@ libspectrum_wav_read( libspectrum_tape *tape, const char *filename )
   /* 44100 Hz 79 t-states 22050 Hz 158 t-states */
   libspectrum_tape_block_set_bit_length( block,
                                          3500000/afGetRate( handle, track ) );
-  libspectrum_tape_block_set_pause     ( block, 0 );
-  libspectrum_tape_block_set_bits_in_last_byte( block, length%8 ? length%8 : 8 );
-  libspectrum_tape_block_set_data_length( block, tape_length/8 );
+  libspectrum_set_pause_ms( block, 0 );
+  libspectrum_tape_block_set_bits_in_last_byte( block,
+              length % LIBSPECTRUM_BITS_IN_BYTE ?
+                length % LIBSPECTRUM_BITS_IN_BYTE : LIBSPECTRUM_BITS_IN_BYTE );
+  data_length = tape_length / LIBSPECTRUM_BITS_IN_BYTE;
+  libspectrum_tape_block_set_data_length( block, data_length );
 
-  tape_buffer = libspectrum_calloc( tape_length/8, sizeof( *tape_buffer ) );
+  tape_buffer = libspectrum_new0( libspectrum_byte, data_length );
 
   libspectrum_byte *from = buffer;
   libspectrum_byte *to = tape_buffer;

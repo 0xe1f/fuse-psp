@@ -1,8 +1,6 @@
 /* gslist.c: Minimal replacement for GSList
    Copyright (c) 2001-2004 Matan Ziv-Av, Philip Kendall, Marek Januszewski
 
-   $Id: gslist.c 3698 2008-06-30 15:12:02Z pak21 $
-
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or
@@ -25,7 +23,7 @@
 
 #include <config.h>
 
-#ifndef HAVE_LIB_GLIB		/* Use this iff we're not using the 
+#ifndef HAVE_LIB_GLIB		/* Use this iff we're not using the
 				   `proper' glib */
 
 #include <stdlib.h>
@@ -43,16 +41,34 @@ gint	last_function		(gconstpointer	 a,
 static int FREE_LIST_ALLOCATE_CHUNK = 1024;
 
 GSList * free_list = NULL;
+GSList * allocated_list = NULL;
+
+#ifdef HAVE_STDATOMIC_H
+
+static atomic_char atomic_locker = ATOMIC_VAR_INIT(0);
+
+#define lock() atomic_lock( &atomic_locker )
+#define unlock() atomic_unlock( &atomic_locker )
+
+#else				/* #ifdef HAVE_STDATOMIC_H */
+
+#define lock()
+#define unlock()
+
+#endif				/* #ifdef HAVE_STDATOMIC_H */
 
 static
 void    allocate_free   ( void ) {
+    lock();
     if(!free_list) {
         int i;
         free_list=libspectrum_malloc(FREE_LIST_ALLOCATE_CHUNK*sizeof(GSList));
+        allocated_list = free_list;
         for(i=0;i<FREE_LIST_ALLOCATE_CHUNK-1;i++)
             free_list[i].next=&free_list[i+1];
         free_list[FREE_LIST_ALLOCATE_CHUNK-1].next=NULL;
     }
+    unlock();
 }
 
 
@@ -71,8 +87,10 @@ GSList* g_slist_insert	(GSList		*list,
 
   allocate_free();
 
+  lock();
   new_list = free_list;
   free_list=free_list->next;
+  unlock();
   new_list->data = data;
   new_list->next=NULL;
 
@@ -119,8 +137,10 @@ GSList* g_slist_insert_sorted	(GSList		*list,
 
   if (!list)
     {
+      lock();
       new_list = free_list;
       free_list=free_list->next;
+      unlock();
       new_list->data = data;
       new_list->next=NULL;
       return new_list;
@@ -135,8 +155,10 @@ GSList* g_slist_insert_sorted	(GSList		*list,
       cmp = (*func) (data, tmp_list->data);
     }
 
+  lock();
   new_list = free_list;
   free_list=free_list->next;
+  unlock();
   new_list->data = data;
 
   if ((!tmp_list->next) && (cmp > 0))
@@ -186,7 +208,7 @@ gint	last_function		(gconstpointer	 a,
 }
 
 GSList* g_slist_remove		(GSList		*list,
-				 gpointer	 data) {
+				 gconstpointer	 data) {
 
   GSList *tmp;
   GSList *prev;
@@ -246,6 +268,18 @@ GSList* g_slist_delete_link	(GSList		*list,
   return list;
 }
 
+GSList*
+g_slist_last (GSList *list)
+{
+  if (list)
+    {
+      while (list->next)
+      list = list->next;
+    }
+
+  return list;
+}
+
 guint
 g_slist_length (GSList *list)
 {
@@ -280,9 +314,29 @@ void	g_slist_free		(GSList		*list) {
       while( last_node->next )
 	last_node = last_node->next;
 
+      lock();
       last_node->next = free_list;
       free_list = list;
+      unlock();
     }
+}
+
+GSList*
+g_slist_reverse (GSList *list)
+{
+  GSList *prev = NULL;
+
+  while (list)
+    {
+      GSList *next = list->next;
+
+      list->next = prev;
+
+      prev = list;
+      list = next;
+    }
+
+  return prev;
 }
 
 GSList* g_slist_nth		(GSList		*list,
@@ -296,7 +350,7 @@ GSList* g_slist_nth		(GSList		*list,
 }
 
 GSList* g_slist_find_custom	(GSList		*list,
-				 gpointer	data,
+				 gconstpointer	data,
 				 GCompareFunc	func ) {
   while (list)
     {
@@ -320,6 +374,16 @@ gint	g_slist_position	(GSList		*list,
   }
 
   return -1;
+}
+
+void
+libspectrum_slist_cleanup( void )
+{
+  lock();
+  libspectrum_free( allocated_list );
+  allocated_list = NULL;
+  free_list = NULL;
+  unlock();
 }
 
 #endif				/* #ifndef HAVE_LIB_GLIB */

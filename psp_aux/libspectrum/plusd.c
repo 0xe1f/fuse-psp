@@ -1,8 +1,6 @@
 /* plusd.c: Routines for handling DISCiPLE/+D snapshots
    Copyright (c) 1998,2003 Philip Kendall
-   Copyright (c) 2007 Stuart Brady
-
-   $Id: plusd.c 3698 2008-06-30 15:12:02Z pak21 $
+   Copyright (c) 2007,2015 Stuart Brady
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -61,7 +59,7 @@ libspectrum_plusd_read( libspectrum_snap *snap, const libspectrum_byte *buffer,
   buffer += PLUSD_HEADER_LENGTH;
 
   error = libspectrum_plusd_read_data( buffer, snap );
-  if( error != LIBSPECTRUM_ERROR_NONE );
+  if( error != LIBSPECTRUM_ERROR_NONE ) return error;
 
   return LIBSPECTRUM_ERROR_NONE;
 }
@@ -107,8 +105,6 @@ libspectrum_plusd_read_header( const libspectrum_byte *buffer,
 
   /* Make a guess at the interrupt mode depending on what I was set to */
   libspectrum_snap_set_im( snap, ( i == 0 || i == 63 ) ? 1 : 2 );
-
-  buffer += PLUSD_HEADER_LENGTH;
 
   return LIBSPECTRUM_ERROR_NONE;
 }
@@ -211,7 +207,7 @@ libspectrum_plusd_read_128_data( libspectrum_snap *snap,
 
     libspectrum_byte *ram;
 
-    ram = libspectrum_malloc( 0x4000 * sizeof( *ram ) );
+    ram = libspectrum_new( libspectrum_byte, 0x4000 );
     libspectrum_snap_set_pages( snap, i, ram );
 
     memcpy( ram, buffer, 0x4000 );

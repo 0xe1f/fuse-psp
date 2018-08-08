@@ -2,6 +2,8 @@ libspectrum is brought to you by:
 
 * Stuart Brady: Scorpion ZS 256 support.
 
+* Bjoern Giesler: Wii port
+
 * Garry Lancaster: IDE hard disk image support.
 
 * Fredrick Meunier: Spectrum SE support and more.
@@ -12,5 +14,3 @@ libspectrum is brought to you by:
 * Matan Ziv-Av: The singly-linked list code.
 
 * Philip Kendall: everything else.
-
-$Id: AUTHORS 2280 2004-06-26 16:44:14Z pak21 $

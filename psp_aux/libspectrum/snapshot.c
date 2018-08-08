@@ -1,7 +1,5 @@
 /* snapshot.c: Snapshot handling routines
-   Copyright (c) 2001-2008 Philip Kendall, Darren Salt
-
-   $Id: snapshot.c 3701 2008-06-30 20:32:56Z pak21 $
+   Copyright (c) 2001-2009 Philip Kendall, Darren Salt
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -64,6 +62,7 @@ libspectrum_snap_alloc( void )
   libspectrum_snap_set_r   ( snap, 0x00 );
   libspectrum_snap_set_sp  ( snap, 0x0000 );
   libspectrum_snap_set_pc  ( snap, 0x0000 );
+  libspectrum_snap_set_memptr( snap, 0x0000 );
 
   libspectrum_snap_set_iff1( snap, 1 );
   libspectrum_snap_set_iff2( snap, 1 );
@@ -71,6 +70,7 @@ libspectrum_snap_alloc( void )
 
   libspectrum_snap_set_halted( snap, 0 );
   libspectrum_snap_set_last_instruction_ei( snap, 0 );
+  libspectrum_snap_set_last_instruction_set_f( snap, 0 );
 
   libspectrum_snap_set_custom_rom( snap, 0 );
   libspectrum_snap_set_custom_rom_pages( snap, 0 );
@@ -109,6 +109,8 @@ libspectrum_snap_alloc( void )
 
   libspectrum_snap_set_beta_active( snap, 0 );
   libspectrum_snap_set_beta_paged( snap, 0 );
+  libspectrum_snap_set_beta_autoboot( snap, 0 );
+  libspectrum_snap_set_beta_drive_count( snap, 0 );
   libspectrum_snap_set_beta_custom_rom( snap, 0 );
   libspectrum_snap_set_beta_direction( snap, 0 );
   libspectrum_snap_set_beta_system( snap, 0 );
@@ -120,6 +122,7 @@ libspectrum_snap_alloc( void )
 
   libspectrum_snap_set_plusd_active( snap, 0 );
   libspectrum_snap_set_plusd_paged( snap, 0 );
+  libspectrum_snap_set_plusd_drive_count( snap, 0 );
   libspectrum_snap_set_plusd_custom_rom( snap, 0 );
   libspectrum_snap_set_plusd_direction( snap, 0 );
   libspectrum_snap_set_plusd_control( snap, 0 );
@@ -129,6 +132,24 @@ libspectrum_snap_alloc( void )
   libspectrum_snap_set_plusd_status( snap, 0 );
   libspectrum_snap_set_plusd_rom( snap, 0, NULL );
   libspectrum_snap_set_plusd_ram( snap, 0, NULL );
+
+  libspectrum_snap_set_opus_active( snap, 0 );
+  libspectrum_snap_set_opus_paged ( snap, 0 );
+  libspectrum_snap_set_opus_drive_count( snap, 0 );
+  libspectrum_snap_set_opus_custom_rom( snap, 0 );
+  libspectrum_snap_set_opus_direction ( snap, 0 );
+  libspectrum_snap_set_opus_track ( snap, 0 );
+  libspectrum_snap_set_opus_sector( snap, 0 );
+  libspectrum_snap_set_opus_data  ( snap, 0 );
+  libspectrum_snap_set_opus_status( snap, 0 );
+  libspectrum_snap_set_opus_data_reg_a( snap, 0 );
+  libspectrum_snap_set_opus_data_dir_a( snap, 0 );
+  libspectrum_snap_set_opus_control_a ( snap, 0 );
+  libspectrum_snap_set_opus_data_reg_b( snap, 0 );
+  libspectrum_snap_set_opus_data_dir_b( snap, 0 );
+  libspectrum_snap_set_opus_control_b ( snap, 0 );
+  libspectrum_snap_set_opus_rom( snap, 0, NULL );
+  libspectrum_snap_set_opus_ram( snap, 0, NULL );
 
   libspectrum_snap_set_zxatasp_active( snap, 0 );
   libspectrum_snap_set_zxatasp_upload( snap, 0 );
@@ -172,6 +193,9 @@ libspectrum_snap_alloc( void )
 
   libspectrum_snap_set_simpleide_active( snap, 0 );
 
+  libspectrum_snap_set_specdrum_active( snap, 0 );
+  libspectrum_snap_set_specdrum_dac( snap, 0 );
+
   libspectrum_snap_set_divide_active( snap, 0 );
   libspectrum_snap_set_divide_eprom_writeprotect( snap, 0 );
   libspectrum_snap_set_divide_paged( snap, 0 );
@@ -181,6 +205,88 @@ libspectrum_snap_alloc( void )
   for( i = 0; i < SNAPSHOT_DIVIDE_PAGES; i++ ) {
     libspectrum_snap_set_divide_ram( snap, i, NULL );
   }
+
+  libspectrum_snap_set_divmmc_active( snap, 0 );
+  libspectrum_snap_set_divmmc_eprom_writeprotect( snap, 0 );
+  libspectrum_snap_set_divmmc_paged( snap, 0 );
+  libspectrum_snap_set_divmmc_control( snap, 0 );
+  libspectrum_snap_set_divmmc_pages( snap, 0 );
+  libspectrum_snap_set_divmmc_eprom( snap, 0, NULL );
+  for( i = 0; i < SNAPSHOT_DIVMMC_PAGES; i++ ) {
+    libspectrum_snap_set_divmmc_ram( snap, i, NULL );
+  }
+
+  libspectrum_snap_set_fuller_box_active( snap, 0 );
+
+  libspectrum_snap_set_melodik_active( snap, 0 );
+
+  libspectrum_snap_set_spectranet_active( snap, 0 );
+  libspectrum_snap_set_spectranet_all_traps_disabled( snap, 0 );
+  libspectrum_snap_set_spectranet_rst8_trap_disabled( snap, 0 );
+  libspectrum_snap_set_spectranet_w5100( snap, 0, NULL );
+  libspectrum_snap_set_spectranet_flash( snap, 0, NULL );
+  libspectrum_snap_set_spectranet_ram( snap, 0, NULL );
+  
+  libspectrum_snap_set_late_timings( snap, 0 );
+  
+  libspectrum_snap_set_zx_printer_active( snap, 0 );
+
+  libspectrum_snap_set_usource_active( snap, 0 );
+  libspectrum_snap_set_usource_paged( snap, 0 );
+  libspectrum_snap_set_usource_custom_rom( snap, 0 );
+  libspectrum_snap_set_usource_rom( snap, 0, NULL );
+  libspectrum_snap_set_usource_rom_length( snap, 0, 0 );
+
+  libspectrum_snap_set_disciple_active( snap, 0 );
+  libspectrum_snap_set_disciple_paged( snap, 0 );
+  libspectrum_snap_set_disciple_inhibit_button( snap, 0 );
+  libspectrum_snap_set_disciple_drive_count( snap, 0 );
+  libspectrum_snap_set_disciple_custom_rom( snap, 0 );
+  libspectrum_snap_set_disciple_direction( snap, 0 );
+  libspectrum_snap_set_disciple_control( snap, 0 );
+  libspectrum_snap_set_disciple_track ( snap, 0 );
+  libspectrum_snap_set_disciple_sector( snap, 0 );
+  libspectrum_snap_set_disciple_data  ( snap, 0 );
+  libspectrum_snap_set_disciple_status( snap, 0 );
+  libspectrum_snap_set_disciple_rom( snap, 0, NULL );
+  libspectrum_snap_set_disciple_rom_length( snap, 0, 0 );
+  libspectrum_snap_set_disciple_ram( snap, 0, NULL );
+
+  libspectrum_snap_set_didaktik80_active( snap, 0 );
+  libspectrum_snap_set_didaktik80_paged( snap, 0 );
+  libspectrum_snap_set_didaktik80_drive_count( snap, 0 );
+  libspectrum_snap_set_didaktik80_custom_rom( snap, 0 );
+  libspectrum_snap_set_didaktik80_direction( snap, 0 );
+  libspectrum_snap_set_didaktik80_aux( snap, 0 );
+  libspectrum_snap_set_didaktik80_track ( snap, 0 );
+  libspectrum_snap_set_didaktik80_sector( snap, 0 );
+  libspectrum_snap_set_didaktik80_data  ( snap, 0 );
+  libspectrum_snap_set_didaktik80_status( snap, 0 );
+  libspectrum_snap_set_didaktik80_rom( snap, 0, NULL );
+  libspectrum_snap_set_didaktik80_rom_length( snap, 0, 0 );
+  libspectrum_snap_set_didaktik80_ram( snap, 0, NULL );
+
+  libspectrum_snap_set_covox_active( snap, 0 );
+  libspectrum_snap_set_covox_dac( snap, 0 );
+
+  libspectrum_snap_set_ulaplus_active( snap, 0 );
+  libspectrum_snap_set_ulaplus_palette_enabled( snap, 0 );
+  libspectrum_snap_set_ulaplus_current_register( snap, 0 );
+  libspectrum_snap_set_ulaplus_palette( snap, 0, NULL );
+  libspectrum_snap_set_ulaplus_ff_register( snap, 0 );
+
+  libspectrum_snap_set_multiface_active( snap, 0 );
+  libspectrum_snap_set_multiface_paged( snap, 0 );
+  libspectrum_snap_set_multiface_model_one( snap, 0 );
+  libspectrum_snap_set_multiface_model_128( snap, 0 );
+  libspectrum_snap_set_multiface_model_3( snap, 0 );
+  libspectrum_snap_set_multiface_disabled( snap, 0 );
+  libspectrum_snap_set_multiface_software_lockout( snap, 0 );
+  libspectrum_snap_set_multiface_red_button_disabled( snap, 0 );
+  libspectrum_snap_set_multiface_ram( snap, 0, NULL );
+  libspectrum_snap_set_multiface_ram_length( snap, 0, 0 );
+
+  libspectrum_snap_set_zxmmc_active( snap, 0 );
 
   return snap;
 }
@@ -223,6 +329,40 @@ libspectrum_snap_free( libspectrum_snap *snap )
   if( libspectrum_snap_interface1_rom( snap, 0 ) )
     libspectrum_free( libspectrum_snap_interface1_rom( snap, 0 ) );
 
+  if( libspectrum_snap_spectranet_w5100( snap, 0 ) )
+    libspectrum_free( libspectrum_snap_spectranet_w5100( snap, 0 ) );
+  if( libspectrum_snap_spectranet_flash( snap, 0 ) )
+    libspectrum_free( libspectrum_snap_spectranet_flash( snap, 0 ) );
+  if( libspectrum_snap_spectranet_ram( snap, 0 ) )
+    libspectrum_free( libspectrum_snap_spectranet_ram( snap, 0 ) );
+
+  if( libspectrum_snap_usource_rom( snap, 0 ) )
+    libspectrum_free( libspectrum_snap_usource_rom( snap, 0 ) );
+
+  if( libspectrum_snap_disciple_rom( snap, 0 ) )
+    libspectrum_free( libspectrum_snap_disciple_rom( snap, 0 ) );
+  if( libspectrum_snap_disciple_ram( snap, 0 ) )
+    libspectrum_free( libspectrum_snap_disciple_ram( snap, 0 ) );
+
+  if( libspectrum_snap_didaktik80_rom( snap, 0 ) )
+    libspectrum_free( libspectrum_snap_didaktik80_rom( snap, 0 ) );
+  if( libspectrum_snap_didaktik80_ram( snap, 0 ) )
+    libspectrum_free( libspectrum_snap_didaktik80_ram( snap, 0 ) );
+
+  libspectrum_free( libspectrum_snap_divide_eprom( snap, 0 ) );
+  for( i = 0; i < SNAPSHOT_DIVIDE_PAGES; i++ )
+    libspectrum_free( libspectrum_snap_divide_ram( snap, i ) );
+
+  libspectrum_free( libspectrum_snap_divmmc_eprom( snap, 0 ) );
+  for( i = 0; i < SNAPSHOT_DIVMMC_PAGES; i++ )
+    libspectrum_free( libspectrum_snap_divmmc_ram( snap, i ) );
+
+  if( libspectrum_snap_ulaplus_palette( snap, 0 ) )
+    libspectrum_free( libspectrum_snap_ulaplus_palette( snap, 0 ) );
+
+  if( libspectrum_snap_multiface_ram( snap, 0 ) )
+    libspectrum_free( libspectrum_snap_multiface_ram( snap, 0 ) );
+
   libspectrum_free( snap );
 
   return LIBSPECTRUM_ERROR_NONE;
@@ -238,7 +378,6 @@ libspectrum_snap_read( libspectrum_snap *snap, const libspectrum_byte *buffer,
   libspectrum_class_t class;
   libspectrum_byte *new_buffer;
   libspectrum_error error;
-  int uncompressed;
 
   /* If we don't know what sort of file this is, make a best guess */
   if( type == LIBSPECTRUM_ID_UNKNOWN ) {
@@ -265,7 +404,7 @@ libspectrum_snap_read( libspectrum_snap *snap, const libspectrum_byte *buffer,
   }
 
   /* Find out if this file needs decompression */
-  uncompressed = 0; new_buffer = NULL;
+  new_buffer = NULL;
 
   error = libspectrum_identify_file_raw( &raw_type, filename, buffer, length );
   if( error ) return error;
@@ -279,8 +418,8 @@ libspectrum_snap_read( libspectrum_snap *snap, const libspectrum_byte *buffer,
 
     error = libspectrum_uncompress_file( &new_buffer, &new_length, NULL,
 					 raw_type, buffer, length, NULL );
+    if( error ) return error;
     buffer = new_buffer; length = new_length;
-    uncompressed = 1;
   }
 
   switch( type ) {
@@ -321,8 +460,23 @@ libspectrum_snap_read( libspectrum_snap *snap, const libspectrum_byte *buffer,
 libspectrum_error
 libspectrum_snap_write( libspectrum_byte **buffer, size_t *length,
 			int *out_flags, libspectrum_snap *snap,
-	 		libspectrum_id_t type, libspectrum_creator *creator,
+			libspectrum_id_t type, libspectrum_creator *creator,
 			int in_flags )
+{
+  libspectrum_byte *ptr = *buffer;
+  libspectrum_buffer *new_buffer = libspectrum_buffer_alloc();
+  libspectrum_error error =
+    libspectrum_snap_write_buffer( new_buffer, out_flags, snap, type, creator,
+                                   in_flags );
+  libspectrum_buffer_append( buffer, length, &ptr, new_buffer );
+  libspectrum_buffer_free( new_buffer );
+  return error;
+}
+
+libspectrum_error
+libspectrum_snap_write_buffer( libspectrum_buffer *buffer, int *out_flags,
+                               libspectrum_snap *snap, libspectrum_id_t type,
+                               libspectrum_creator *creator, int in_flags )
 {
   libspectrum_class_t class;
   libspectrum_error error;
@@ -339,21 +493,25 @@ libspectrum_snap_write( libspectrum_byte **buffer, size_t *length,
   switch( type ) {
 
   case LIBSPECTRUM_ID_SNAPSHOT_SNA:
-    return libspectrum_sna_write( buffer, length, out_flags, snap, in_flags );
+    error = libspectrum_sna_write( buffer, out_flags, snap, in_flags );
+    break;
 
   case LIBSPECTRUM_ID_SNAPSHOT_SZX:
-    return libspectrum_szx_write( buffer, length, out_flags, snap, creator,
-				  in_flags );
+    error = libspectrum_szx_write( buffer, out_flags, snap, creator, in_flags );
+    break;
 
   case LIBSPECTRUM_ID_SNAPSHOT_Z80:
-    return libspectrum_z80_write2( buffer, length, out_flags, snap, in_flags );
+    error = libspectrum_z80_write2( buffer, out_flags, snap, in_flags );
+    break;
 
   default:
     libspectrum_print_error( LIBSPECTRUM_ERROR_UNKNOWN,
 			     "libspectrum_snap_write: format not supported" );
-    return LIBSPECTRUM_ERROR_UNKNOWN;
+    error = LIBSPECTRUM_ERROR_UNKNOWN;
 
   }
+
+  return error;
 }
 
 /* Given a 48K memory dump `data', place it into the
@@ -377,7 +535,7 @@ libspectrum_split_to_48k_pages( libspectrum_snap *snap,
   }
 
   for( i = 0; i < 3; i++ )
-    buffer[i] = libspectrum_malloc( 0x4000 * sizeof( libspectrum_byte ) );
+    buffer[i] = libspectrum_new( libspectrum_byte, 0x4000 );
 
   libspectrum_snap_set_pages( snap, 5, buffer[0] );
   libspectrum_snap_set_pages( snap, 2, buffer[1] );

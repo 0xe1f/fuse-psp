@@ -1,7 +1,5 @@
 # snap_accessors.txt: simple accessors for libspectrum_snap
-# Copyright (c) 2003-2008 Philip Kendall
-
-# $Id: snap_accessors.txt 3608 2008-04-25 01:59:46Z fredm $
+# Copyright (c) 2003-2016 Philip Kendall
 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -39,6 +37,7 @@ libspectrum_byte i
 libspectrum_byte r
 libspectrum_word sp
 libspectrum_word pc
+libspectrum_word memptr
 libspectrum_byte iff1
 libspectrum_byte iff2
 libspectrum_byte im
@@ -47,6 +46,7 @@ libspectrum_dword tstates
 
 int halted
 int last_instruction_ei
+int last_instruction_set_f
 
 libspectrum_byte out_ula
 
@@ -68,6 +68,8 @@ size_t interface1_rom_length 1
 
 int beta_active
 int beta_paged
+int beta_autoboot
+int beta_drive_count
 int beta_custom_rom
 int beta_direction
 libspectrum_byte beta_system
@@ -79,6 +81,7 @@ libspectrum_byte* beta_rom 1
 
 int plusd_active
 int plusd_paged
+int plusd_drive_count
 int plusd_custom_rom
 int plusd_direction
 libspectrum_byte plusd_control
@@ -88,6 +91,24 @@ libspectrum_byte plusd_data
 libspectrum_byte plusd_status
 libspectrum_byte* plusd_rom 1
 libspectrum_byte* plusd_ram 1
+
+int opus_active
+int opus_paged
+int opus_drive_count
+int opus_custom_rom
+int opus_direction
+libspectrum_byte opus_track
+libspectrum_byte opus_sector
+libspectrum_byte opus_data
+libspectrum_byte opus_status
+libspectrum_byte opus_data_reg_a
+libspectrum_byte opus_data_dir_a
+libspectrum_byte opus_control_a
+libspectrum_byte opus_data_reg_b
+libspectrum_byte opus_data_dir_b
+libspectrum_byte opus_control_b
+libspectrum_byte* opus_rom 1
+libspectrum_byte* opus_ram 1
 
 int custom_rom
 size_t custom_rom_pages
@@ -144,3 +165,95 @@ libspectrum_byte divide_control
 size_t divide_pages
 libspectrum_byte* divide_eprom 1
 libspectrum_byte* divide_ram 1
+
+int divmmc_active
+int divmmc_eprom_writeprotect
+int divmmc_paged
+libspectrum_byte divmmc_control
+size_t divmmc_pages
+libspectrum_byte* divmmc_eprom 1
+libspectrum_byte* divmmc_ram 1
+
+int fuller_box_active
+
+int melodik_active
+
+int specdrum_active
+libspectrum_signed_byte specdrum_dac
+
+int spectranet_active
+int spectranet_paged
+int spectranet_paged_via_io
+int spectranet_nmi_flipflop
+int spectranet_programmable_trap_active
+int spectranet_programmable_trap_msb
+int spectranet_all_traps_disabled
+int spectranet_rst8_trap_disabled
+int spectranet_deny_downstream_a15
+int spectranet_page_a
+int spectranet_page_b
+libspectrum_word spectranet_programmable_trap
+libspectrum_byte* spectranet_w5100 1
+libspectrum_byte* spectranet_flash 1
+libspectrum_byte* spectranet_ram 1
+
+int late_timings
+
+int zx_printer_active
+
+int usource_active
+int usource_paged
+int usource_custom_rom
+libspectrum_byte* usource_rom 1
+size_t usource_rom_length 1
+
+int disciple_active
+int disciple_paged
+int disciple_inhibit_button
+int disciple_drive_count
+int disciple_custom_rom
+size_t disciple_rom_length 1
+int disciple_direction
+libspectrum_byte disciple_control
+libspectrum_byte disciple_track
+libspectrum_byte disciple_sector
+libspectrum_byte disciple_data
+libspectrum_byte disciple_status
+libspectrum_byte* disciple_rom 1
+libspectrum_byte* disciple_ram 1
+
+int didaktik80_active
+int didaktik80_paged
+int didaktik80_drive_count
+int didaktik80_custom_rom
+size_t didaktik80_rom_length 1
+int didaktik80_direction
+libspectrum_byte didaktik80_aux
+libspectrum_byte didaktik80_track
+libspectrum_byte didaktik80_sector
+libspectrum_byte didaktik80_data
+libspectrum_byte didaktik80_status
+libspectrum_byte* didaktik80_rom 1
+libspectrum_byte* didaktik80_ram 1
+
+int covox_active
+libspectrum_byte covox_dac
+
+int ulaplus_active
+int ulaplus_palette_enabled
+libspectrum_byte ulaplus_current_register
+libspectrum_byte* ulaplus_palette 1
+libspectrum_byte ulaplus_ff_register
+
+int multiface_active
+int multiface_paged
+int multiface_model_one
+int multiface_model_128
+int multiface_model_3
+int multiface_disabled
+int multiface_software_lockout
+int multiface_red_button_disabled
+libspectrum_byte* multiface_ram 1
+size_t multiface_ram_length 1
+
+int zxmmc_active

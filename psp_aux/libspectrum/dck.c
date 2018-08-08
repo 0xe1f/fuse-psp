@@ -1,7 +1,5 @@
 /* dck.c: Routines for handling Warajevo DCK files
-   Copyright (c) 2003 Darren Salt, Fredrick Meunier
-
-   $Id: dck.c 3701 2008-06-30 20:32:56Z pak21 $
+   Copyright (c) 2003-2015 Darren Salt, Fredrick Meunier
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -40,7 +38,7 @@ libspectrum_dck_block_alloc( libspectrum_dck_block **dck )
 {
   size_t i;
 
-  *dck = libspectrum_malloc( sizeof( **dck ) );
+  *dck = libspectrum_new( libspectrum_dck_block, 1 );
 
   (*dck)->bank = LIBSPECTRUM_DCK_BANK_DOCK;
   for( i = 0; i < 8; i++ ) {
@@ -69,7 +67,7 @@ libspectrum_dck_block_free( libspectrum_dck_block *dck, int keep_pages )
 libspectrum_dck*
 libspectrum_dck_alloc( void )
 {
-  libspectrum_dck *dck = libspectrum_malloc( sizeof( *dck ) );
+  libspectrum_dck *dck = libspectrum_new( libspectrum_dck, 1 );
   size_t i;
   for( i=0; i<256; i++ ) dck->dck[i] = NULL;
   return dck;
@@ -131,6 +129,7 @@ libspectrum_dck_read2( libspectrum_dck *dck, const libspectrum_byte *buffer,
 
     error = libspectrum_uncompress_file( &new_buffer, &new_length, NULL,
                                          raw_type, buffer, length, NULL );
+    if( error ) return error;
     buffer = new_buffer; length = new_length;
   }
 
@@ -204,7 +203,7 @@ libspectrum_dck_read2( libspectrum_dck *dck, const libspectrum_byte *buffer,
         break;
       case LIBSPECTRUM_DCK_PAGE_RAM_EMPTY:
         dck->dck[num_dck_block]->pages[i] =
-                        libspectrum_calloc( DCK_PAGE_SIZE, sizeof( libspectrum_byte ) );
+                        libspectrum_new0( libspectrum_byte, DCK_PAGE_SIZE );
         if( !dck->dck[num_dck_block]->pages[i] ) {
           libspectrum_print_error( LIBSPECTRUM_ERROR_MEMORY,
                                    "libspectrum_dck_read: out of memory" );
@@ -215,7 +214,7 @@ libspectrum_dck_read2( libspectrum_dck *dck, const libspectrum_byte *buffer,
       case LIBSPECTRUM_DCK_PAGE_ROM:
       case LIBSPECTRUM_DCK_PAGE_RAM:
         dck->dck[num_dck_block]->pages[i] =
-	  libspectrum_malloc( DCK_PAGE_SIZE * sizeof( libspectrum_byte ) );
+	  libspectrum_new( libspectrum_byte, DCK_PAGE_SIZE );
         memcpy( dck->dck[num_dck_block]->pages[i], buffer, DCK_PAGE_SIZE );
         buffer += DCK_PAGE_SIZE;
         break;
