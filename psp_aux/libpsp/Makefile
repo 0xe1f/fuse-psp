@@ -1,20 +1,16 @@
-## Makefile for psplib library
-## Copyright (C) 2008 Akop Karapetyan
-
-## This program is free software: you can redistribute it and/or modify
-## it under the terms of the GNU General Public License as published by
-## the Free Software Foundation, either version 3 of the License, or
-## (at your option) any later version.
-
-## This program is distributed in the hope that it will be useful,
-## but WITHOUT ANY WARRANTY; without even the implied warranty of
-## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-## GNU General Public License for more details.
-
-## You should have received a copy of the GNU General Public License
-## along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-## Author contact information: pspdev@akop.org
+## Copyright 2007-2015 Akop Karapetyan
+## 
+## Licensed under the Apache License, Version 2.0 (the "License");
+## you may not use this file except in compliance with the License.
+## You may obtain a copy of the License at
+## 
+##    http://www.apache.org/licenses/LICENSE-2.0
+## 
+## Unless required by applicable law or agreed to in writing, software
+## distributed under the License is distributed on an "AS IS" BASIS,
+## WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+## See the License for the specific language governing permissions and
+## limitations under the License.
 
 ifndef PSP_FW_VERSION
 PSP_FW_VERSION=200
@@ -32,8 +28,9 @@ all: libpsplib.a
 
 libpsplib.a: \
   adhoc.o font.o image.o ctrl.o video.o ui.o \
-  pl_ini.o pl_perf.o pl_vk.o pl_util.o pl_image.o \
-  pl_psp.o pl_menu.o pl_file.o pl_snd.o pl_gfx.o
+  pl_ini.o pl_perf.o pl_vk.o pl_util.o \
+  pl_psp.o pl_menu.o pl_file.o pl_snd.o pl_gfx.o \
+  pl_rewind.o pl_ctl.o pl_ui.o
 
 	$(AR) cru $@ $?
 	$(RANLIB) $@
@@ -89,6 +86,16 @@ pl_image.o: pl_image.c pl_image.h
 	$(CC) $(DEFINES) $(CFLAGS) -O2 -c -o $@ $<
 
 pl_gfx.o: pl_gfx.c pl_gfx.h
+	$(CC) $(DEFINES) $(CFLAGS) -O2 -c -o $@ $<
+
+pl_rewind.o: pl_rewind.c pl_rewind.h
+	$(CC) $(DEFINES) $(CFLAGS) -O2 -c -o $@ $<
+
+pl_ctl.o: pl_ctl.c pl_ctl.h
+	$(CC) $(DEFINES) $(CFLAGS) -O2 -c -o $@ $<
+
+pl_ui.o: pl_ui.c pl_ui.h pl_file.o pl_psp.o \
+         ctrl.o font.o pl_menu.o video.o adhoc.o
 	$(CC) $(DEFINES) $(CFLAGS) -O2 -c -o $@ $<
 
 stockfont.h: stockfont.fd genfont

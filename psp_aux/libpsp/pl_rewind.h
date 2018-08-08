@@ -12,28 +12,38 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef _PL_PERF_H
-#define _PL_PERF_H
-
-#include <psptypes.h>
+#ifndef _PL_REWIND_H
+#define _PL_REWIND_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef struct pl_perf_counter_t
-{
-  float ticks_per_second;
-  int frame_count;
-  u64 last_tick;
-  float fps;
-} pl_perf_counter;
+struct rewind_state;
 
-void  pl_perf_init_counter(pl_perf_counter *counter);
-float pl_perf_update_counter(pl_perf_counter *counter);
+typedef struct
+{
+  int state_data_size;
+  int state_count;
+  struct rewind_state *start;
+  struct rewind_state *current;
+  int (*save_state)(void *);
+  int (*load_state)(void *);
+  int (*get_state_size)();
+} pl_rewind;
+
+int  pl_rewind_init(pl_rewind *rewind,
+  int (*save_state)(void *),
+  int (*load_state)(void *),
+  int (*get_state_size)());
+void pl_rewind_realloc(pl_rewind *rewind);
+void pl_rewind_destroy(pl_rewind *rewind);
+void pl_rewind_reset(pl_rewind *rewind);
+int  pl_rewind_save(pl_rewind *rewind);
+int  pl_rewind_restore(pl_rewind *rewind);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // _PL_PERF_H
+#endif // _PL_REWIND_H
