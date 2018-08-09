@@ -1,8 +1,6 @@
 /* input.h: generalised input events layer for Fuse
    Copyright (c) 2004 Philip Kendall
 
-   $Id: input.h 3749 2008-08-15 12:47:44Z fredm $
-
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or
@@ -22,8 +20,6 @@
    E-mail: philip-fuse@shadowmagic.org.uk
 
 */
-
-#include <config.h>
 
 #ifndef FUSE_INPUT_H
 #define FUSE_INPUT_H
@@ -49,9 +45,17 @@ typedef enum input_key {
   INPUT_KEY_Escape = 0x1b,
 
   INPUT_KEY_space = 0x20,
-
-  INPUT_KEY_numbersign = 0x23,
-  INPUT_KEY_apostrophe = 0x27,
+  INPUT_KEY_exclam,
+  INPUT_KEY_quotedbl,
+  INPUT_KEY_numbersign,
+  INPUT_KEY_dollar,
+  INPUT_KEY_percent,
+  INPUT_KEY_ampersand,
+  INPUT_KEY_apostrophe,
+  INPUT_KEY_parenleft,
+  INPUT_KEY_parenright,
+  INPUT_KEY_asterisk,
+  INPUT_KEY_plus,
   INPUT_KEY_comma = 0x2c,
   INPUT_KEY_minus = 0x2d,
   INPUT_KEY_period = 0x2e,
@@ -68,8 +72,13 @@ typedef enum input_key {
   INPUT_KEY_8,
   INPUT_KEY_9,
 
-  INPUT_KEY_semicolon = 0x3b,
-  INPUT_KEY_equal = 0x3d,
+  INPUT_KEY_colon = 0x3a,
+  INPUT_KEY_semicolon,
+  INPUT_KEY_less,
+  INPUT_KEY_equal,
+  INPUT_KEY_greater,
+  INPUT_KEY_question,
+  INPUT_KEY_at,
 
   INPUT_KEY_A = 0x41,
   INPUT_KEY_B,
@@ -97,6 +106,12 @@ typedef enum input_key {
   INPUT_KEY_X,
   INPUT_KEY_Y,
   INPUT_KEY_Z,
+  INPUT_KEY_bracketleft,
+  INPUT_KEY_backslash,
+  INPUT_KEY_bracketright,
+  INPUT_KEY_asciicircum = 0x5e,
+  INPUT_KEY_dead_circumflex = 0x5e,
+  INPUT_KEY_underscore = 0x5f,
 
   INPUT_KEY_a = 0x61,
   INPUT_KEY_b,
@@ -124,8 +139,13 @@ typedef enum input_key {
   INPUT_KEY_x,
   INPUT_KEY_y,
   INPUT_KEY_z,
-
+  INPUT_KEY_braceleft,
+  INPUT_KEY_bar,
+  INPUT_KEY_braceright,
+  INPUT_KEY_asciitilde,
   INPUT_KEY_BackSpace = 0x7f,
+
+  INPUT_KEY_KP_Enter = 0x8d,
 
   INPUT_KEY_Up = 0x100,
   INPUT_KEY_Down,
@@ -183,6 +203,11 @@ typedef enum input_key {
   INPUT_JOYSTICK_FIRE_8,
   INPUT_JOYSTICK_FIRE_9,
   INPUT_JOYSTICK_FIRE_10,
+  INPUT_JOYSTICK_FIRE_11,
+  INPUT_JOYSTICK_FIRE_12,
+  INPUT_JOYSTICK_FIRE_13,
+  INPUT_JOYSTICK_FIRE_14,
+  INPUT_JOYSTICK_FIRE_15,
 
 } input_key;
 

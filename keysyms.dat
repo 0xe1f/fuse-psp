@@ -1,8 +1,6 @@
 # keysyms.dat: data file for use by keysyms.pl to generate keysyms.c
 # Copyright (c) 2000-2001,2004 Philip Kendall, Matan Ziv-Av, Russell Marks
 
-# $Id: keysyms.dat 2889 2007-05-26 17:45:08Z zubzero $
-
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
@@ -33,9 +31,17 @@ Return
 Escape
 
 space
-
+exclam
+quotedbl
 numbersign
+dollar
+percent
+ampersand
 apostrophe
+parenleft
+parenright
+asterisk
+plus
 comma
 minus
 period
@@ -52,8 +58,13 @@ slash
 8
 9
 
+colon
 semicolon
+less
 equal
+greater
+question
+at
 
 A
 B
@@ -82,6 +93,13 @@ X
 Y
 Z
 
+bracketleft
+backslash
+bracketright
+asciicircum
+dead_circumflex
+underscore
+
 a
 b
 c
@@ -109,7 +127,13 @@ x
 y
 z
 
+braceleft
+bar
+braceright
+asciitilde
 BackSpace
+
+KP_Enter
 
 Up
 Down

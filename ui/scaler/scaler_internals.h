@@ -1,8 +1,6 @@
 /* scaler_internals.h: functions internal to the scaler code
    Copyright (c) 2003 Fredrick Meunier, Philip Kendall
 
-   $Id: scaler_internals.h 3612 2008-05-02 12:56:05Z fredm $
-
    Originally taken from ScummVM - Scumm Interpreter
    Copyright (C) 2001  Ludvig Strigeus
    Copyright (C) 2001/2002 The ScummVM project

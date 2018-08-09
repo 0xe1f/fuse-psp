@@ -1,7 +1,6 @@
 /* commandy.y: Parse a debugger command
-   Copyright (c) 2002-2008 Philip Kendall
-
-   $Id: commandy.y 3657 2008-06-08 15:04:37Z pak21 $
+   Copyright (c) 2002-2016 Philip Kendall
+   Copyright (c) 2015 Sergio Baldoví
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -31,8 +30,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "debugger.h"
-#include "debugger_internals.h"
+#include "debugger/debugger.h"
+#include "debugger/debugger_internals.h"
 #include "mempool.h"
 #include "ui/ui.h"
 #include "z80/z80.h"
@@ -46,14 +45,14 @@
 %union {
 
   int token;
-  int reg;
 
   libspectrum_dword integer;
   char *string;
 
   debugger_breakpoint_type bptype;
   debugger_breakpoint_life bplife;
-  struct { int value1; libspectrum_word value2; } pair;
+  struct { libspectrum_word mask, value; } port;
+  struct { int source; int page; int offset; } location;
 
   debugger_expression* exp;
 
@@ -70,7 +69,6 @@
 %token <token>	 COMPARISON	/* < > <= >= */
 %token <token>   EQUALITY	/* == != */
 %token <token>   NEGATE		/* ! ~ */
-%token <token>	 TIMES_DIVIDE	/* * / */
 
 %token		 BASE
 %token		 BREAK
@@ -97,9 +95,6 @@
 %token		 TIME
 %token		 WRITE
 
-%token <integer> PAGE
-%token <reg>	 DEBUGGER_REGISTER
-
 %token <integer> NUMBER
 
 %token <string>	 STRING
@@ -111,8 +106,8 @@
 
 %type  <bplife>  breakpointlife
 %type  <bptype>  breakpointtype
-%type  <integer> pageornumber
-%type  <pair>    breakpointpair
+%type  <port>    breakpointport
+%type  <location> breakpointlocation
 %type  <bptype>  portbreakpointtype
 %type  <integer> numberorpc
 %type  <integer> number
@@ -137,7 +132,7 @@
 %left EQUALITY
 %left COMPARISON
 %left '+' '-'
-%left TIMES_DIVIDE
+%left '*' '/'
 %right NEGATE		/* Unary minus, unary plus, !, ~ */
 
 /* High precedence */
@@ -151,15 +146,14 @@ input:	 /* empty */
 ;
 
 command:   BASE number { debugger_output_base = $2; }
-	 | breakpointlife breakpointtype breakpointpair optionalcondition {
-             debugger_breakpoint_add_address( $2, $3.value1, $3.value2, 0, $1,
-					      $4 );
+	 | breakpointlife breakpointtype breakpointlocation optionalcondition {
+             debugger_breakpoint_add_address( $2, $3.source, $3.page, $3.offset,
+                                              0, $1, $4 );
 	   }
-	 | breakpointlife PORT portbreakpointtype breakpointpair optionalcondition {
-	     int mask; libspectrum_word port;
-	     mask = $4.value1; port = $4.value2;
-	     if( mask == -1 ) mask = ( port < 0x100 ? 0x00ff : 0xffff );
-	     debugger_breakpoint_add_port( $3, port, mask, 0, $1, $5 );
+	 | breakpointlife PORT portbreakpointtype breakpointport optionalcondition {
+	     int mask = $4.mask;
+	     if( mask == 0 ) mask = ( $4.value < 0x100 ? 0x00ff : 0xffff );
+	     debugger_breakpoint_add_port( $3, $4.value, mask, 0, $1, $5 );
            }
 	 | breakpointlife TIME number optionalcondition {
 	     debugger_breakpoint_add_time( DEBUGGER_BREAKPOINT_TYPE_TIME,
@@ -168,6 +162,10 @@ command:   BASE number { debugger_output_base = $2; }
 	 | breakpointlife EVENT STRING ':' STRING optionalcondition {
 	     debugger_breakpoint_add_event( DEBUGGER_BREAKPOINT_TYPE_EVENT,
 					    $3, $5, 0, $1, $6 );
+	   }
+	 | breakpointlife EVENT STRING ':' '*' optionalcondition {
+	     debugger_breakpoint_add_event( DEBUGGER_BREAKPOINT_TYPE_EVENT,
+					    $3, "*", 0, $1, $6 );
 	   }
 	 | CLEAR numberorpc { debugger_breakpoint_clear( $2 ); }
 	 | COMMANDS number '\n' debuggercommands DEBUGGER_END { debugger_breakpoint_set_commands( $2, $4 ); }
@@ -178,7 +176,7 @@ command:   BASE number { debugger_output_base = $2; }
 	 | DEBUGGER_DELETE { debugger_breakpoint_remove_all(); }
 	 | DEBUGGER_DELETE number { debugger_breakpoint_remove( $2 ); }
 	 | DISASSEMBLE number { ui_debugger_disassemble( $2 ); }
-	 | EXIT     { debugger_exit_emulator(); }
+	 | EXIT expressionornull { debugger_exit_emulator( $2 ); }
 	 | FINISH   { debugger_breakpoint_exit(); }
 	 | DEBUGGER_IGNORE NUMBER number {
 	     debugger_breakpoint_ignore( $2, $3 );
@@ -187,8 +185,8 @@ command:   BASE number { debugger_output_base = $2; }
 	 | DEBUGGER_OUT number NUMBER { debugger_port_write( $2, $3 ); }
 	 | DEBUGGER_PRINT number { printf( "0x%x\n", $2 ); }
 	 | SET NUMBER number { debugger_poke( $2, $3 ); }
-	 | SET DEBUGGER_REGISTER number { debugger_register_set( $2, $3 ); }
 	 | SET VARIABLE number { debugger_variable_set( $2, $3 ); }
+         | SET STRING ':' STRING number { debugger_system_variable_set( $2, $4, $5 ); }
 	 | STEP	    { debugger_step(); }
 ;
 
@@ -201,12 +199,22 @@ breakpointtype:   /* empty */ { $$ = DEBUGGER_BREAKPOINT_TYPE_EXECUTE; }
                 | WRITE       { $$ = DEBUGGER_BREAKPOINT_TYPE_WRITE; }
 ;
 
-breakpointpair:   numberorpc { $$.value1 = -1; $$.value2 = $1; }
-		| pageornumber ':' number { $$.value1 = $1; $$.value2 = $3; }
+breakpointport:   number { $$.mask = 0; $$.value = $1; }
+		| number ':' number { $$.mask = $1; $$.value = $3; }
 ;
 
-pageornumber:   PAGE { $$ = $1; }
-	      | number { $$ = $1; }
+breakpointlocation:   numberorpc { $$.source = memory_source_any; $$.offset = $1; }
+                    | STRING ':' number ':' number {
+                        $$.source = memory_source_find( $1 );
+                        if( $$.source == -1 ) {
+                          char buffer[80];
+                          snprintf( buffer, 80, "unknown memory source \"%s\"", $1 );
+                          yyerror( buffer );
+                          YYERROR;
+                        }
+                        $$.page = $3;
+                        $$.offset = $5;
+                      }
 
 portbreakpointtype:   READ  { $$ = DEBUGGER_BREAKPOINT_TYPE_PORT_READ; }
 		    | WRITE { $$ = DEBUGGER_BREAKPOINT_TYPE_PORT_WRITE; }
@@ -230,13 +238,17 @@ number:   expression { $$ = debugger_expression_evaluate( $1 ); }
 expression:   NUMBER { $$ = debugger_expression_new_number( $1, debugger_memory_pool );
 		       if( !$$ ) YYABORT;
 		     }
-	    | DEBUGGER_REGISTER { $$ = debugger_expression_new_register( $1, debugger_memory_pool );
-			 if( !$$ ) YYABORT;
-		       }
+            | STRING ':' STRING { $$ = debugger_expression_new_system_variable( $1, $3, debugger_memory_pool );
+                                  if( !$$ ) YYABORT;
+                                }
 	    | VARIABLE { $$ = debugger_expression_new_variable( $1, debugger_memory_pool );
 			 if( !$$ ) YYABORT;
 		       }
 	    | '(' expression ')' { $$ = $2; }
+            | '[' expression ']' {
+                $$ = debugger_expression_new_unaryop( DEBUGGER_TOKEN_DEREFERENCE, $2, debugger_memory_pool );
+                if( !$$ ) YYABORT;
+              }
 	    | '+' expression %prec NEGATE { $$ = $2; }
 	    | '-' expression %prec NEGATE {
 	        $$ = debugger_expression_new_unaryop( '-', $2, debugger_memory_pool );
@@ -254,8 +266,12 @@ expression:   NUMBER { $$ = debugger_expression_new_number( $1, debugger_memory_
 	        $$ = debugger_expression_new_binaryop( '-', $1, $3, debugger_memory_pool );
 		if( !$$ ) YYABORT;
 	      }
-	    | expression TIMES_DIVIDE expression {
-	        $$ = debugger_expression_new_binaryop( $2, $1, $3, debugger_memory_pool );
+	    | expression '*' expression {
+	        $$ = debugger_expression_new_binaryop( '*', $1, $3, debugger_memory_pool );
+		if( !$$ ) YYABORT;
+	      }
+	    | expression '/' expression {
+	        $$ = debugger_expression_new_binaryop( '/', $1, $3, debugger_memory_pool );
 		if( !$$ ) YYABORT;
 	      }
 	    | expression EQUALITY expression {
@@ -294,7 +310,7 @@ expression:   NUMBER { $$ = debugger_expression_new_number( $1, debugger_memory_
 
 debuggercommands:   debuggercommand { $$ = $1; }
                   | debuggercommands debuggercommand {
-                      $$ = mempool_alloc( debugger_memory_pool, strlen( $1 ) + strlen( $2 ) + 2 );
+                      $$ = mempool_new( debugger_memory_pool, char, strlen( $1 ) + strlen( $2 ) + 2 );
                       sprintf( $$, "%s\n%s", $1, $2 );
                     }
 

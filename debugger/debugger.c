@@ -1,7 +1,5 @@
 /* debugger.c: Fuse's monitor/debugger
-   Copyright (c) 2002-2008 Philip Kendall
-
-   $Id: debugger.c 3686 2008-06-21 14:33:22Z pak21 $
+   Copyright (c) 2002-2016 Philip Kendall
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -29,7 +27,8 @@
 #include "debugger_internals.h"
 #include "event.h"
 #include "fuse.h"
-#include "memory.h"
+#include "infrastructure/startup_manager.h"
+#include "memory_pages.h"
 #include "mempool.h"
 #include "periph.h"
 #include "ui/ui.h"
@@ -48,46 +47,54 @@ int debugger_memory_pool;
 /* The event type used for time breakpoints */
 int debugger_breakpoint_event;
 
-int
-debugger_init( void )
-{
-  int error;
+/* Fuse's exit code */
+static int exit_code = 0;
 
+static int
+debugger_init( void *context )
+{
   debugger_breakpoints = NULL;
   debugger_output_base = 16;
 
   debugger_memory_pool = mempool_register_pool();
-  if( debugger_memory_pool == -1 ) return 1;
 
   debugger_breakpoint_event = event_register( debugger_breakpoint_time_fn, "Breakpoint" );
-  if( debugger_breakpoint_event == -1 ) return 1;
 
-  error = debugger_event_init();
-  if( error ) return error;
-
-  error = debugger_variable_init();
-  if( error ) return error;
-
-  error = debugger_reset();
-  if( error ) return error;
+  debugger_event_init();
+  debugger_system_variable_init();
+  debugger_variable_init();
+  debugger_reset();
 
   return 0;
 }
 
-int
+void
 debugger_reset( void )
 {
   debugger_breakpoint_remove_all();
   debugger_mode = DEBUGGER_MODE_INACTIVE;
-
-  return 0;
 }
 
-int
+static void
 debugger_end( void )
 {
   debugger_breakpoint_remove_all();
-  return 0;
+  debugger_variable_end();
+  debugger_system_variable_end();
+  debugger_event_end();
+}
+
+void
+debugger_register_startup( void )
+{
+  startup_manager_module dependencies[] = {
+    STARTUP_MANAGER_MODULE_EVENT,
+    STARTUP_MANAGER_MODULE_MEMPOOL,
+    STARTUP_MANAGER_MODULE_SETUID,
+  };
+  startup_manager_register( STARTUP_MANAGER_MODULE_DEBUGGER, dependencies,
+                            ARRAY_SIZE( dependencies ), debugger_init, NULL,
+                            debugger_end );
 }
 
 /* Activate the debugger */
@@ -116,9 +123,10 @@ debugger_next( void )
   debugger_disassemble( NULL, 0, &length, PC );
 
   /* And add a breakpoint after that */
-  debugger_breakpoint_add_address( DEBUGGER_BREAKPOINT_TYPE_EXECUTE, -1,
-				   PC + length, 0,
-				   DEBUGGER_BREAKPOINT_LIFE_ONESHOT, NULL );
+  debugger_breakpoint_add_address(
+    DEBUGGER_BREAKPOINT_TYPE_EXECUTE, memory_source_any, 0, PC + length, 0,
+    DEBUGGER_BREAKPOINT_LIFE_ONESHOT, NULL
+  );
 
   debugger_run();
 
@@ -146,7 +154,7 @@ debugger_breakpoint_exit( void )
   target = readbyte_internal( SP ) + 0x100 * readbyte_internal( SP+1 );
 
   if( debugger_breakpoint_add_address(
-        DEBUGGER_BREAKPOINT_TYPE_EXECUTE, -1, target, 0,
+        DEBUGGER_BREAKPOINT_TYPE_EXECUTE, memory_source_any, 0, target, 0,
 	DEBUGGER_BREAKPOINT_LIFE_ONESHOT, NULL
       )
     )
@@ -175,12 +183,21 @@ debugger_port_write( libspectrum_word port, libspectrum_byte value )
 
 /* Exit the emulator */
 void
-debugger_exit_emulator( void )
+debugger_exit_emulator( debugger_expression *exit_code_expression )
 {
   fuse_exiting = 1;
+
+  exit_code = exit_code_expression ?
+    debugger_expression_evaluate( exit_code_expression ) : 0;
 
   /* Ensure we break out of the main Z80 loop immediately */
   event_add( 0, event_type_null );
 
   debugger_run();
+}
+
+int
+debugger_get_exit_code( void )
+{
+  return exit_code;
 }

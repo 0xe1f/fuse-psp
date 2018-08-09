@@ -1,7 +1,5 @@
 # settings.dat: configuration options for Fuse
-# Copyright (c) 2002-2008 Philip Kendall
-
-# $Id: settings.dat 3787 2008-10-22 19:10:25Z pak21 $
+# Copyright (c) 2002-2017 Philip Kendall
 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -37,6 +35,7 @@ issue2, boolean, 0
 joy_prompt, boolean, 0,, joystick-prompt
 joy_kempston, boolean, 0,, kempston
 kempston_mouse, boolean, 0
+mouse_swap_buttons, boolean, 0
 tape_traps, boolean, 1,, traps, tapetraps
 fastload, boolean, 1
 auto_load, boolean, 1
@@ -48,6 +47,7 @@ full_screen, boolean, 0
 writable_roms, boolean, 0
 autosave_settings, boolean, 0
 bw_tv, boolean, 0
+recreated_spectrum, boolean, 0
 rs232_handshake, boolean, 0
 rs232_tx, string, NULL
 rs232_rx, string, NULL
@@ -61,21 +61,46 @@ interface1, boolean, 0
 mdr_len, numeric, 180
 mdr_random_len, boolean, 1
 interface2, boolean, 1
+multiface1, boolean, 0
+multiface128, boolean, 0
+multiface3, boolean, 0
+multiface1_stealth, boolean, 0
 snapsasz80, null, 0
+opus, boolean, 0
 pal_tv2x, boolean, 0
+movie_compr, string, NULL
+movie_start, string, NULL
+movie_stop_after_rzx, boolean, 1
 plusd, boolean, 0
+didaktik80, boolean, 0
+disciple, boolean, 0
 beta128, boolean, 0
+beta128_48boot, boolean, 1
+z80_is_cmos, boolean, 0,, cmos-z80
 late_timings, boolean, 0
 unittests, boolean, 0
+fuller, boolean, 0
+melodik, boolean, 0
+speccyboot, boolean, 0
+specdrum, boolean, 0
+spectranet, boolean, 0
+spectranet_disable, boolean, 0
+usource, boolean, 0
+zxprinter, boolean, 1
+covox, boolean, 0
+phantom_typist_mode, string, "Auto"
 
 sound_device, string, NULL, 'd'
 sound, boolean, 1
 sound_load, boolean, 1,, loading-sound
-stereo_ay, boolean, 0,, separation
-stereo_beeper, boolean, 0,, beeper-stereo
+stereo_ay, string, NULL,, separation
 sound_force_8bit, boolean, 0
-sound_freq, numeric, 32000, 'f'
-sound_hifi, boolean, 0
+sound_freq, numeric, 44100, 'f'
+speaker_type, string, NULL
+volume_ay, numeric, 100
+volume_beeper, numeric, 100
+volume_specdrum, numeric, 100
+volume_covox, numeric, 100
 
 joystick_1, string, NULL, 'j'
 joystick_1_output, numeric, 0
@@ -89,6 +114,11 @@ joystick_1_fire_7, numeric, 4096
 joystick_1_fire_8, numeric, 4096
 joystick_1_fire_9, numeric, 4096
 joystick_1_fire_10, numeric, 4096
+joystick_1_fire_11, numeric, 4096
+joystick_1_fire_12, numeric, 4096
+joystick_1_fire_13, numeric, 4096
+joystick_1_fire_14, numeric, 4096
+joystick_1_fire_15, numeric, 4096
 joystick_2, string, NULL
 joystick_2_output, numeric, 0
 joystick_2_fire_1, numeric, 4096
@@ -101,12 +131,19 @@ joystick_2_fire_7, numeric, 4096
 joystick_2_fire_8, numeric, 4096
 joystick_2_fire_9, numeric, 4096
 joystick_2_fire_10, numeric, 4096
+joystick_2_fire_11, numeric, 4096
+joystick_2_fire_12, numeric, 4096
+joystick_2_fire_13, numeric, 4096
+joystick_2_fire_14, numeric, 4096
+joystick_2_fire_15, numeric, 4096
 joystick_keyboard_output, numeric, 0
 joystick_keyboard_up, numeric, 113
 joystick_keyboard_down, numeric, 97
 joystick_keyboard_left, numeric, 111
 joystick_keyboard_right, numeric, 112
 joystick_keyboard_fire, numeric, 32
+
+keyboard_arrows_shifted, boolean, 1
 
 rzx_compression, boolean, 1,, compress-rzx
 competition_mode, boolean, 0
@@ -118,9 +155,12 @@ snapshot, string, NULL, 's'
 tape_file, string, NULL, 't', tape, tapefile
 start_machine, string, "48", 'm', machine
 record_file, string, NULL, 'r', record, recordfile
+opusdisk_file, string, NULL,, opusdisk
 playback_file, string, NULL, 'p', playback, playbackfile
 plus3disk_file, string, NULL,, plus3disk
 plusddisk_file, string, NULL,, plusddisk
+didaktik80disk_file, string, NULL,, didaktik80disk
+discipledisk_file, string, NULL,, discipledisk
 betadisk_file, string, NULL,, betadisk
 dck_file, string, NULL,, dock
 if2_file, string, NULL,, if2cart
@@ -148,16 +188,25 @@ divide_enabled, boolean, 0,, divide
 divide_wp, boolean, 0,, divide-write-protect
 divide_master_file, string, NULL,, divide-masterfile
 divide_slave_file, string, NULL,, divide-slavefile
+divmmc_enabled, boolean, 0,, divmmc
+divmmc_wp, boolean, 0,, divmmc-write-protect
+divmmc_file, string, NULL,, divmmc-file
+zxmmc_enabled, boolean, 0,, zxmmc
+zxmmc_file, string, NULL,, zxmmc-file
 
 printer_graphics_filename, string, "printout.pbm",, graphicsfile
 printer_text_filename, string, "printout.txt",, textfile
 
 aspect_hint, boolean, 1
 strict_aspect_hint, boolean, 0
-svga_mode, numeric, 320, 'v', svgamode
+fb_mode, numeric, 320, 'v', fbmode
+svga_modes, string, NULL
+sdl_fullscreen_mode, string, NULL
 doublescan_mode, numeric, 1, 'D', doublescan-mode
 
 start_scaler_mode, string, "normal", 'g', graphics-filter
+
+speccyboot_tap, string, "tap0",
 
 rom_16, string, "48.rom",
 rom_48, string, "48.rom",
@@ -199,8 +248,37 @@ rom_scorpion_2, string, "256s-2.rom",
 rom_scorpion_3, string, "256s-3.rom",
 rom_spec_se_0, string, "se-0.rom",
 rom_spec_se_1, string, "se-1.rom",
-rom_interface_i, string, "if1-2.rom",
-rom_plusd, string, "plusd.rom",
+rom_interface_1, string, "if1-2.rom",,, rominterfacei
 rom_beta128, string, "trdos.rom",
+rom_plusd, string, "plusd.rom",
+rom_didaktik80, string, "didaktik80.rom",
+rom_disciple, string, "disciple.rom",
+rom_multiface1, string, "mf1.rom",
+rom_multiface128, string, "mf128.rom",
+rom_multiface3, string, "mf3.rom",
+rom_opus, string, "opus.rom",
+rom_speccyboot, string, "speccyboot-1.4.rom",
+rom_usource, string, "usource.rom",
+
+drive_plus3a_type, string, NULL
+drive_plus3b_type, string, NULL
+plus3_detect_speedlock, boolean, 1
+drive_beta128a_type, string, NULL
+drive_beta128b_type, string, NULL
+drive_beta128c_type, string, NULL
+drive_beta128d_type, string, NULL
+drive_plusd1_type, string, NULL
+drive_plusd2_type, string, NULL
+drive_didaktik80a_type, string, NULL
+drive_didaktik80b_type, string, NULL
+drive_disciple1_type, string, NULL
+drive_disciple2_type, string, NULL
+drive_opus1_type, string, NULL
+drive_opus2_type, string, NULL
+drive_40_max_track, numeric, 42
+drive_80_max_track, numeric, 84
+
+disk_try_merge, string, NULL
+disk_ask_merge, boolean, 1
 
 debugger_command, string, NULL

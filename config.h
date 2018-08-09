@@ -1,8 +1,26 @@
 /* config.h.  Generated from config.h.in by configure.  */
-/* config.h.in.  Generated from configure.in by autoheader.  */
+/* config.h.in.  Generated from configure.ac by autoheader.  */
+
+/* Define if building universal (internal helper macro) */
+/* #undef AC_APPLE_UNIVERSAL_BUILD */
+
+/* Defined if we can increase Blip Buffer accuracy */
+/* #undef BLIP_BUFFER_ACCURACY */
+
+/* Define to 1 if SpeccyBoot is supported. */
+#define BUILD_SPECCYBOOT 1
+
+/* Defined if we support spectranet */
+/* #undef BUILD_SPECTRANET */
 
 /* DirectX 7 or higher is required */
 /* #undef DIRECTSOUND_VERSION */
+
+/* Define copyright of Fuse */
+#define FUSE_COPYRIGHT "(c) 1999-2018 Philip Kendall and others"
+
+/* Define version information for win32 executables */
+#define FUSE_RC_VERSION 1,5,6,0
 
 /* Define to 1 if you have the `dirname' function. */
 #define HAVE_DIRNAME 1
@@ -34,10 +52,10 @@
 /* Define to 1 if you have the <libgen.h> header file. */
 #define HAVE_LIBGEN_H 1
 
-/* Define to 1 if you have the <libspectrum.h> header file. */
-#define HAVE_LIBSPECTRUM_H 1
+/* Define to 1 if you have the `m' library (-lm). */
+/* #define HAVE_LIBM 1 */
 
-/* Defined if we've got glib */
+/* Defined if we've got GLib */
 /* #undef HAVE_LIB_GLIB */
 
 /* Defined if we've got libxml2 */
@@ -46,11 +64,11 @@
 /* Define to 1 if you have the <memory.h> header file. */
 #define HAVE_MEMORY_H 1
 
-/* Define to 1 if you have the `mkstemp' function. */
-#define HAVE_MKSTEMP 1
+/* Define if you have POSIX threads libraries and header files. */
+/* #undef HAVE_PTHREAD */
 
-/* Define to 1 if you have libsamplerate. */
-/* #undef HAVE_SAMPLERATE */
+/* Have PTHREAD_PRIO_INHERIT. */
+/* #undef HAVE_PTHREAD_PRIO_INHERIT */
 
 /* Define to 1 if you have the <siginfo.h> header file. */
 /* #undef HAVE_SIGINFO_H */
@@ -66,6 +84,9 @@
 
 /* Define to 1 if you have the <string.h> header file. */
 #define HAVE_STRING_H 1
+
+/* Define if your system has strcasecmp() in string.h */
+#define HAVE_STRING_STRCASECMP 1
 
 /* Define to 1 if you have the <sys/audioio.h> header file. */
 /* #undef HAVE_SYS_AUDIOIO_H */
@@ -88,6 +109,12 @@
 /* Define to 1 if you have the <X11/extensions/XShm.h> header file. */
 /* #undef HAVE_X11_EXTENSIONS_XSHM_H */
 
+/* Define to 1 if you have the <zlib.h> header file. */
+/* #undef HAVE_ZLIB_H */
+
+/* Define to 1 if your C compiler doesn't accept -c and -o together. */
+/* #undef NO_MINUS_C_MINUS_O */
+
 /* Defined if no sound code is present */
 /* #undef NO_SOUND */
 
@@ -95,19 +122,26 @@
 #define PACKAGE "fuse"
 
 /* Define to the address where bug reports for this package should be sent. */
-#define PACKAGE_BUGREPORT ""
+#define PACKAGE_BUGREPORT "http://sourceforge.net/p/fuse-emulator/bugs/"
 
 /* Define to the full name of this package. */
-#define PACKAGE_NAME ""
+#define PACKAGE_NAME "fuse"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING ""
+#define PACKAGE_STRING "fuse 1.5.6"
 
 /* Define to the one symbol short name of this package. */
-#define PACKAGE_TARNAME ""
+#define PACKAGE_TARNAME "fuse"
+
+/* Define to the home page for this package. */
+#define PACKAGE_URL "http://fuse-emulator.sourceforge.net/"
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION ""
+#define PACKAGE_VERSION "1.5.6"
+
+/* Define to necessary symbol if this constant uses a non-standard name on
+   your system. */
+/* #undef PTHREAD_CREATE_JOINABLE */
 
 /* Location of the ROM images */
 #define ROMSDIR "system"
@@ -118,24 +152,23 @@
 /* Define to 1 if you have the ANSI C header files. */
 #define STDC_HEADERS 1
 
-/* The header needed to define the timer type */
-#define TIMER_HEADER <psptypes.h> \
-#include <psprtc.h>
-
-/* The type needed for the timer routines */
-#define TIMER_TYPE u64
-
 /* Defined if framebuffer UI in use */
 /* #undef UI_FB */
 
-/* Defined if GTK+ UI (either 1.2 or 2.x) is in use */
+/* Defined if GTK+ UI is in use */
 /* #undef UI_GTK */
+
+/* Defined if null UI is in use */
+/* #undef UI_NULL */
 
 /* Defined if the SDL UI in use */
 /* #undef UI_SDL */
 
 /* Defined if svgalib UI in use */
 /* #undef UI_SVGA */
+
+/* Defined if Wii UI in use */
+/* #undef UI_WII */
 
 /* Defined if Win32 UI in use */
 /* #undef UI_WIN32 */
@@ -153,14 +186,25 @@
 /* #define USE_WIDGET 1 */
 
 /* Version number of package */
-#define VERSION "0.10.0"
+#define VERSION "1.5.6"
 
-/* Minimal supported version of Windows is 95 or NT4 */
+/* Exclude rarely used stuff from Windows headers <windows.h> */
+/* #undef WIN32_LEAN_AND_MEAN */
+
+/* Minimal supported version of Windows is 2000 */
 /* #undef WINVER */
 
-/* Define to 1 if your processor stores words with the most significant byte
-   first (like Motorola and SPARC, unlike Intel and VAX). */
-/* #undef WORDS_BIGENDIAN */
+/* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most
+   significant byte first (like Motorola and SPARC, unlike Intel). */
+#if defined AC_APPLE_UNIVERSAL_BUILD
+# if defined __BIG_ENDIAN__
+#  define WORDS_BIGENDIAN 1
+# endif
+#else
+# ifndef WORDS_BIGENDIAN
+/* #  undef WORDS_BIGENDIAN */
+# endif
+#endif
 
 /* Define to 1 if the X Window System is missing or not being used. */
 #define X_DISPLAY_MISSING 1
@@ -169,7 +213,7 @@
    `char[]'. */
 #define YYTEXT_POINTER 1
 
-/* Internet Explorer is 4.0 or higher is required */
+/* Internet Explorer 5.01 or higher is required */
 /* #undef _WIN32_IE */
 
 /* Define to empty if `const' does not conform to ANSI C. */

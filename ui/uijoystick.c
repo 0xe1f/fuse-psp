@@ -1,7 +1,6 @@
 /* uijoystick.c: Joystick emulation (using libjsw)
-   Copyright (c) 2003-2004 Darren Salt, Philip Kendall
-
-   $Id: uijoystick.c 3749 2008-08-15 12:47:44Z fredm $
+   Copyright (c) 2003-2015 Darren Salt, Philip Kendall
+   Copyright (c) 2015 UB880D
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -38,7 +37,6 @@
 #include <config.h>
 
 #include "input.h"
-#include "joystick.h"
 #include "uijoystick.h"
 
 #if defined USE_JOYSTICK && defined HAVE_JSW_H
@@ -60,6 +58,8 @@
 #include "utils.h"
 
 static js_data_struct jsd[2];
+
+static int js_button_states[2][NUM_JOY_BUTTONS];
 
 static void poll_joystick( int which );
 static void do_axis( int which, double position, input_key negative,
@@ -141,29 +141,39 @@ int open_joystick( int which, const char *device, const char *calibration )
 int
 ui_joystick_init( void )
 {
-  const char *home;
+  const char *cfgdir;
   char *calibration;
   int error;
+  size_t i, j;
 
-  home = compat_get_home_path(); if( !home ) return 1;
+  cfgdir = compat_get_config_path(); if( !cfgdir ) return 1;
 
   /* Default calibration file is ~/.joystick */
-  calibration = malloc( strlen( home ) + strlen( JSDefaultCalibration ) + 2 );
+  calibration = libspectrum_new( char, strlen( cfgdir ) +
+                                       strlen( JSDefaultCalibration ) + 2 );
 
-  if( !calibration ) {
-    ui_error( UI_ERROR_ERROR, "failed to initialise joystick: %s",
-	      "not enough memory" );
-    return 0;
+  sprintf( calibration, "%s/%s", cfgdir, JSDefaultCalibration );
+
+  for( i = 0; i < 2; i++ ) {
+    for( j = 0; j < NUM_JOY_BUTTONS; j++ ) {
+      js_button_states[i][j] = 0;
+    }
   }
-
-  sprintf( calibration, "%s/%s", home, JSDefaultCalibration );
 
   /* If we can't init the first, don't try the second */
   error = open_joystick( 0, settings_current.joystick_1, calibration );
-  if( error ) return 0;
+  if( error ) {
+    libspectrum_free( calibration );
+    return 0;
+  }
 
   error = open_joystick( 1, settings_current.joystick_2, calibration );
-  if( error ) return 1;
+  if( error ) {
+    libspectrum_free( calibration );
+    return 1;
+  }
+
+  libspectrum_free( calibration );
 
   return 2;
 }
@@ -205,7 +215,7 @@ poll_joystick( int which )
   event.types.joystick.which = which;
 
   buttons = joystick->total_buttons;
-  if( buttons > 10 ) buttons = 10;	/* We support 'only' 10 fire buttons */
+  if( buttons > NUM_JOY_BUTTONS ) buttons = NUM_JOY_BUTTONS;	/* We support 'only' NUM_JOY_BUTTONS (15 as defined in ui/uijoystick.h) fire buttons */
 
   for( i = 0; i < buttons; i++ ) {
 
@@ -217,9 +227,14 @@ poll_joystick( int which )
     }
 
     event.types.joystick.button = INPUT_JOYSTICK_FIRE_1 + i;
+
+    if( js_button_states[which][i] != fire ) {
+      js_button_states[which][i] = fire;
+      input_event( &event );
+    }
+
   }
 
-  input_event( &event );
 }
 
 static void

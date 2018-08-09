@@ -1,9 +1,11 @@
 #include <config.h>
 
 #include <pspkernel.h>
+#include <psprtc.h>
 
 #include "timer/timer.h"
 
+/* FIXME
 int
 timer_get_real_time( timer_type *real_time )
 {
@@ -28,3 +30,4 @@ timer_sleep_ms( int ms )
 {
   sceKernelDelayThread(ms * (sceRtcGetTickResolution() / 1000));
 }
+*/

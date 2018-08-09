@@ -1,7 +1,5 @@
 /* commandl.l: Debugger command lexical scanner
-   Copyright (c) 2002-2008 Philip Kendall
-
-   $Id: commandl.l 3712 2008-07-06 11:45:24Z pak21 $
+   Copyright (c) 2002-2017 Philip Kendall, Sergio Baldoví
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -29,22 +27,24 @@
 
 #include <ctype.h>
 
-#include "debugger.h"
-#include "debugger_internals.h"
+#include "debugger/debugger.h"
+#include "debugger/debugger_internals.h"
 #include "mempool.h"
 
-#include "commandy.h"
+#include "debugger/commandy.h"
 
 #define YY_INPUT(buf,result,max_size) \
 { \
-  if( !debugger_command_input( buf, &result, max_size ) ) result = YY_NULL; \
+  int retval; \
+  if( !debugger_command_input( buf, &retval, max_size ) ) retval = YY_NULL; \
+  result = (yy_size_t)retval; \
 }
 
 #define YY_NO_INPUT
 
 %}
 
-ID	[a-z][a-z0-9]+
+ID	[a-z]([a-z0-9']|\\[ ])*
 
 %option caseless
 
@@ -66,13 +66,13 @@ ev|eve|even|event { return EVENT; }
 ex|exi|exit { return EXIT; }
 fi|fin|fini|finis|finish { return FINISH; }
 if { return IF; }
-i|ig|ign|igno|ignor|ignore { return DEBUGGER_IGNORE; }
+ig|ign|igno|ignor|ignore { return DEBUGGER_IGNORE; }
 n|ne|nex|next { return NEXT; }
 o|ou|out { return DEBUGGER_OUT; }	/* Different name to avoid clashing
 					   with OUT from z80/z80_macros.h */
 p|po|por|port { return PORT; }
 pr|pri|prin|print { return DEBUGGER_PRINT; }
-r|re|rea|read { return READ; }
+re|rea|read { return READ; }
 se|set { return SET; }
 s|st|ste|step { return STEP; }
 t|tb|tbr|tbre|tbrea|tbreak|tbreakp|tbreakpo|tbreakpoi|tbreakpoin|tbreakpoint {
@@ -80,22 +80,11 @@ t|tb|tbr|tbre|tbrea|tbreak|tbreakp|tbreakpo|tbreakpoi|tbreakpoin|tbreakpoint {
 ti|tim|time { return TIME; }
 w|wr|wri|writ|write { return WRITE; }
 
-a|b|c|d|e|f|h|l { yylval.reg = debugger_register_hash( yytext );
-		  return DEBUGGER_REGISTER; }
-
-"a'"|"b'"|"c'"|"d'"|"e'"|"f'"|"h'"|"l'" {
-                             yylval.reg = debugger_register_hash( yytext );
-			     return DEBUGGER_REGISTER; }
-
-af|bc|de|hl|"af\'"|"bc\'"|"de\'"|"hl\'" {
-                             yylval.reg = debugger_register_hash( yytext );
-			     return DEBUGGER_REGISTER; }
-
-sp|pc|ix|iy { yylval.reg = debugger_register_hash( yytext );
-	      return DEBUGGER_REGISTER; }
-
 "("		{ return '('; }
 ")"		{ return ')'; }
+
+"["             { return '['; }
+"]"             { return ']'; }
 
 "!"		{ yylval.token = '!'; return NEGATE; }
 "~"		{ yylval.token = '~'; return NEGATE; }
@@ -115,8 +104,8 @@ sp|pc|ix|iy { yylval.reg = debugger_register_hash( yytext );
 
 "+"		{ return '+'; }
 "-"		{ return '-'; }
-"*"		{ yylval.token = '*'; return TIMES_DIVIDE; }
-"/"		{ yylval.token = '/'; return TIMES_DIVIDE; }
+"*"		{ return '*'; }
+"/"		{ return '/'; }
 
 "&"		{ return '&'; }
 "^"		{ return '^'; }
@@ -137,9 +126,20 @@ $[[:xdigit:]]+	{ yylval.integer = strtol( yytext+1, NULL, 16 );
 		  if( YY_START == COMMANDSTATE1 ) BEGIN( COMMANDSTATE2 );
 		  return NUMBER; }
 
-[cdrx][[:digit:]]+ { yylval.integer = debugger_page_hash( yytext ); return PAGE; }
+{ID}		{ char *dest, *source;
+  yylval.string = mempool_malloc( debugger_memory_pool, strlen( yytext ) + 1 );
+  /* remove escape characters */
+  dest = yylval.string;
+  source = yytext;
+  while( *source ) {
+    if( *source != '\\' ) {
+      *dest++ = *source;
+    }
+    source++;
+  }
+  *dest = '\0';
+  return STRING; }
 
-{ID}		{ yylval.string = mempool_strdup( debugger_memory_pool, yytext ); return STRING; }
 ${ID}		{ yylval.string = mempool_strdup( debugger_memory_pool, yytext + 1 ); return VARIABLE; }
 
 \n		{ return '\n'; }

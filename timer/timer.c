@@ -1,7 +1,5 @@
 /* timer.c: Speed routines for Fuse
-   Copyright (c) 1999-2007 Philip Kendall, Marek Januszewski, Fredrick Meunier
-
-   $Id: timer.c 3681 2008-06-16 09:40:29Z pak21 $
+   Copyright (c) 1999-2017 Philip Kendall, Marek Januszewski, Fredrick Meunier
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -26,20 +24,23 @@
 #include <config.h>
 
 #include "event.h"
+#include "infrastructure/startup_manager.h"
+#include "movie.h"
+#include "phantom_typist.h"
 #include "settings.h"
 #include "sound.h"
 #include "tape.h"
 #include "timer.h"
 #include "ui/ui.h"
 
-static int timer_frame_callback_sound( libspectrum_dword last_tstates );
+static void timer_frame_callback_sound( libspectrum_dword last_tstates );
 
 /*
  * Routines for estimating emulation speed
  */
 
 /* The actual time at the end of each of the last 10 emulated seconds */
-static timer_type stored_times[10];
+static double stored_times[10];
 
 /* Which is the next entry in 'stored_times' that we will update */
 static size_t next_stored_time;
@@ -52,7 +53,7 @@ static int samples;
 
 float current_speed = 100.0;
 
-static timer_type start_time;
+static double start_time;
 
 static const int TEN_MS = 10;
 
@@ -64,13 +65,12 @@ static void timer_frame( libspectrum_dword last_tstates, int event GCC_UNUSED,
 int
 timer_estimate_speed( void )
 {
-  timer_type current_time;
-  float difference;
-  int error;
+  double current_time;
 
   if( frames_until_update-- ) return 0;
 
-  error = timer_get_real_time( &current_time ); if( error ) return error;
+  current_time = timer_get_time();
+  if( current_time < 0 ) return 1;
 
   if( samples < 10 ) {
 
@@ -79,12 +79,8 @@ timer_estimate_speed( void )
     current_speed = settings_current.emulation_speed;
 
   } else {
-
-    difference =
-      timer_get_time_difference( &current_time,
-				 &stored_times[ next_stored_time ] );
-    current_speed = 100 * ( 10.0 / difference );
-
+    current_speed = 10 * 100 /
+                      ( current_time - stored_times[ next_stored_time ] );
   }
 
   ui_statusbar_update_speed( current_speed );
@@ -104,7 +100,7 @@ timer_estimate_speed( void )
 int
 timer_estimate_reset( void )
 {
-  int error = timer_get_real_time( &start_time ); if( error ) return error;
+  start_time = timer_get_time(); if( start_time < 0 ) return 1;
   samples = 0;
   next_stored_time = 0;
   frames_until_update = 0;
@@ -112,24 +108,34 @@ timer_estimate_reset( void )
   return 0;
 }
 
-int
-timer_init( void )
+static int
+timer_init( void *context )
 {
-  int error = timer_get_real_time( &start_time ); if( error ) return error;
+  start_time = timer_get_time(); if( start_time < 0 ) return 1;
 
   timer_event = event_register( timer_frame, "Timer" );
-  if( timer_event == -1 ) return 1;
 
-  error = event_add( 0, timer_event );
-  if( error ) return error;
+  event_add( 0, timer_event );
 
-  return 0;
+  return timer_estimate_reset();
 }
 
-int
+static void
 timer_end( void )
 {
-  return event_remove_type( timer_event );
+  event_remove_type( timer_event );
+}
+
+void
+timer_register_startup( void )
+{
+  startup_manager_module dependencies[] = {
+    STARTUP_MANAGER_MODULE_EVENT,
+    STARTUP_MANAGER_MODULE_SETUID,
+  };
+  startup_manager_register( STARTUP_MANAGER_MODULE_TIMER, dependencies,
+                            ARRAY_SIZE( dependencies ), timer_init, NULL,
+                            timer_end );
 }
 
 #ifdef SOUND_FIFO
@@ -139,97 +145,110 @@ timer_end( void )
 
 extern sfifo_t sound_fifo;
 
-static int
+static void
 timer_frame_callback_sound( libspectrum_dword last_tstates )
 {
   for(;;) {
 
     /* Sleep while fifo is full */
     if( sfifo_space( &sound_fifo ) < sound_framesiz ) {
-      timer_sleep_ms( TEN_MS );
+      timer_sleep( TEN_MS );
     } else {
       break;
     }
 
   }
 
-  if( event_add( last_tstates + machine_current->timings.tstates_per_frame,
-                 timer_event ) )
-    return 1;
-
-  return 0;
+  event_add( last_tstates + machine_current->timings.tstates_per_frame,
+             timer_event );
 }
 
 #else                           /* #ifdef SOUND_FIFO */
 
 /* Blocking socket-style sound based timer */
-static int
+static void
 timer_frame_callback_sound( libspectrum_dword last_tstates )
 {
-  if( event_add( last_tstates + machine_current->timings.tstates_per_frame,
-                 timer_event ) )
-    return 1;
-
-  return 0;
+  event_add( last_tstates + machine_current->timings.tstates_per_frame,
+             timer_event );
 }
   
 #endif                          /* #ifdef SOUND_FIFO */
+
+void
+timer_start_fastloading( void )
+{
+  /* If we're fastloading, turn sound off */
+  if( settings_current.fastload ) sound_pause();
+}
+
+void
+timer_stop_fastloading( void )
+{
+  /* If we were fastloading, sound was off, so turn it back on, and
+     reset the speed counter */
+  if( settings_current.fastload ) {
+    sound_unpause();
+    timer_estimate_reset();
+  }
+}
+
+int
+timer_fastloading_active( void )
+{
+  return tape_is_playing() || phantom_typist_is_active();
+}
 
 static void
 timer_frame( libspectrum_dword last_tstates, int event GCC_UNUSED,
 	     void *user_data GCC_UNUSED )
 {
-  int error;
-  timer_type current_time;
-  float difference;
-  float speed = ( settings_current.emulation_speed < 1 ?
-		  100                                  :
-		  settings_current.emulation_speed ) / 100.0;
+  double current_time, difference;
   long tstates;
 
-  if( sound_enabled ) {
+  if( sound_enabled && settings_current.sound ) {
     timer_frame_callback_sound( last_tstates );
     return;
   }
 
   /* If we're fastloading, just schedule another check in a frame's time
      and do nothing else */
-  if( settings_current.fastload && tape_is_playing() ) {
+  if( settings_current.fastload && timer_fastloading_active() ) {
 
     libspectrum_dword next_check_time =
       last_tstates + machine_current->timings.tstates_per_frame;
 
-    if( event_add( next_check_time, timer_event ) ) return;
+    event_add( next_check_time, timer_event );
 
   } else {
 
+    float speed = ( settings_current.emulation_speed < 1 ?
+                    1.0                                  :
+                    settings_current.emulation_speed ) / 100.0;
+
     while( 1 ) {
 
-      error = timer_get_real_time( &current_time ); if( error ) return;
-      
-      difference = timer_get_time_difference( &current_time, &start_time );
+      current_time = timer_get_time(); if( current_time < 0 ) return;
+      difference = current_time - start_time;
 
       /* Sleep while we are still 10ms ahead */
       if( difference < 0 ) {
-	timer_sleep_ms( TEN_MS );
+        timer_sleep( TEN_MS );
       } else {
 	break;
       }
 
     }
 
-    error = timer_get_real_time( &current_time ); if( error ) return;
-    
-    difference = timer_get_time_difference( &current_time, &start_time );
-  
+    current_time = timer_get_time(); if( current_time < 0 ) return;
+    difference = current_time - start_time;
+
     tstates = ( ( difference + TEN_MS / 1000.0 ) *
 		machine_current->timings.processor_speed
 		) * speed + 0.5;
   
-    if( event_add( last_tstates + tstates, timer_event ) ) return;
+    event_add( last_tstates + tstates, timer_event );
 
-    start_time = current_time;
-    timer_add_time_difference( &start_time, TEN_MS );
-
+    start_time = current_time + TEN_MS / 1000.0;
   }
 }

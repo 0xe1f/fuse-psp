@@ -1,8 +1,6 @@
 /* input.c: generalised input events layer for Fuse
    Copyright (c) 2004 Philip Kendall
 
-   $Id: input.c 3751 2008-08-19 15:46:09Z specu $
-
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or
@@ -27,17 +25,13 @@
 
 #include "fuse.h"
 #include "input.h"
-#include "joystick.h"
 #include "keyboard.h"
-#include "menu.h"
+#include "peripherals/joystick.h"
 #include "settings.h"
 #include "snapshot.h"
 #include "tape.h"
 #include "ui/ui.h"
 #include "utils.h"
-#ifdef USE_WIDGET
-#include "ui/widget/widget.h"
-#endif				/* #ifdef USE_WIDGET */
 
 static int keypress( const input_event_key_t *event );
 static int keyrelease( const input_event_key_t *event );
@@ -66,17 +60,186 @@ input_event( const input_event_t *event )
 }
 
 static int
+use_shifted_arrow_keys( input_key keysym )
+{
+  return ( settings_current.keyboard_arrows_shifted &&
+           ( keysym == INPUT_KEY_Up || keysym == INPUT_KEY_Down ||
+             keysym == INPUT_KEY_Left || keysym == INPUT_KEY_Right ) );
+}
+
+static void
+send_keyboard_press( input_key keysym )
+{
+  const keyboard_spectrum_keys_t *ptr;
+
+  ptr = keyboard_get_spectrum_keys( keysym );
+
+  if( ptr ) {
+    keyboard_press( ptr->key1 );
+    keyboard_press( ptr->key2 );
+  }
+
+  if( use_shifted_arrow_keys( keysym ) ) {
+    keyboard_press( KEYBOARD_Caps );
+  }
+}
+
+static void
+send_keyboard_release( input_key keysym )
+{
+  const keyboard_spectrum_keys_t *ptr;
+
+  ptr = keyboard_get_spectrum_keys( keysym );
+
+  if( ptr ) {
+    keyboard_release( ptr->key1 );
+    keyboard_release( ptr->key2 );
+  }
+
+  if( use_shifted_arrow_keys( keysym ) ) {
+    keyboard_release( KEYBOARD_Caps );
+  }
+}
+
+static input_key
+recreated_is_downkey( int code )
+{
+  switch( code ) {
+
+  case INPUT_KEY_a:                                  return INPUT_KEY_1;
+  case INPUT_KEY_c:                                  return INPUT_KEY_2;
+  case INPUT_KEY_e:                                  return INPUT_KEY_3;
+  case INPUT_KEY_g:                                  return INPUT_KEY_4;
+  case INPUT_KEY_i:                                  return INPUT_KEY_5;
+  case INPUT_KEY_k:                                  return INPUT_KEY_6;
+  case INPUT_KEY_m:                                  return INPUT_KEY_7;
+  case INPUT_KEY_o:                                  return INPUT_KEY_8;
+  case INPUT_KEY_q:                                  return INPUT_KEY_9;
+  case INPUT_KEY_s:                                  return INPUT_KEY_0;
+  case INPUT_KEY_u:                                  return INPUT_KEY_q;
+  case INPUT_KEY_w:                                  return INPUT_KEY_w;
+  case INPUT_KEY_y:                                  return INPUT_KEY_e;
+  case INPUT_KEY_Shift_L | INPUT_KEY_a:              return INPUT_KEY_r;
+  case INPUT_KEY_Shift_L | INPUT_KEY_c:              return INPUT_KEY_t;
+  case INPUT_KEY_Shift_L | INPUT_KEY_e:              return INPUT_KEY_y;
+  case INPUT_KEY_Shift_L | INPUT_KEY_g:              return INPUT_KEY_u;
+  case INPUT_KEY_Shift_L | INPUT_KEY_i:              return INPUT_KEY_i;
+  case INPUT_KEY_Shift_L | INPUT_KEY_k:              return INPUT_KEY_o;
+  case INPUT_KEY_Shift_L | INPUT_KEY_m:              return INPUT_KEY_p;
+  case INPUT_KEY_Shift_L | INPUT_KEY_o:              return INPUT_KEY_a;
+  case INPUT_KEY_Shift_L | INPUT_KEY_q:              return INPUT_KEY_s;
+  case INPUT_KEY_Shift_L | INPUT_KEY_s:              return INPUT_KEY_d;
+  case INPUT_KEY_Shift_L | INPUT_KEY_u:              return INPUT_KEY_f;
+  case INPUT_KEY_Shift_L | INPUT_KEY_w:              return INPUT_KEY_g;
+  case INPUT_KEY_Shift_L | INPUT_KEY_y:              return INPUT_KEY_h;
+  case INPUT_KEY_0:                                  return INPUT_KEY_j;
+  case INPUT_KEY_2:                                  return INPUT_KEY_k;
+  case INPUT_KEY_4:                                  return INPUT_KEY_l;
+  case INPUT_KEY_6:                                  return INPUT_KEY_Return;
+  case INPUT_KEY_8:                                  return INPUT_KEY_Shift_L;
+  case INPUT_KEY_Shift_L | INPUT_KEY_comma:          return INPUT_KEY_z;
+  case INPUT_KEY_minus:                              return INPUT_KEY_x;
+  case INPUT_KEY_bracketleft:                        return INPUT_KEY_c;
+  case INPUT_KEY_semicolon:                          return INPUT_KEY_v;
+  case INPUT_KEY_comma:                              return INPUT_KEY_b;
+  case INPUT_KEY_slash:                              return INPUT_KEY_n;
+  case INPUT_KEY_Shift_L | INPUT_KEY_bracketleft:    return INPUT_KEY_m;
+  case INPUT_KEY_Shift_L | INPUT_KEY_1:              return INPUT_KEY_Control_R;
+  case INPUT_KEY_Shift_L | INPUT_KEY_5:              return INPUT_KEY_space;
+
+  }
+
+  return INPUT_KEY_NONE;
+}
+
+static input_key
+recreated_is_upkey( int code )
+{
+  switch( code ) {
+
+  case INPUT_KEY_b:                                  return INPUT_KEY_1;
+  case INPUT_KEY_d:                                  return INPUT_KEY_2;
+  case INPUT_KEY_f:                                  return INPUT_KEY_3;
+  case INPUT_KEY_h:                                  return INPUT_KEY_4;
+  case INPUT_KEY_j:                                  return INPUT_KEY_5;
+  case INPUT_KEY_l:                                  return INPUT_KEY_6;
+  case INPUT_KEY_n:                                  return INPUT_KEY_7;
+  case INPUT_KEY_p:                                  return INPUT_KEY_8;
+  case INPUT_KEY_r:                                  return INPUT_KEY_9;
+  case INPUT_KEY_t:                                  return INPUT_KEY_0;
+  case INPUT_KEY_v:                                  return INPUT_KEY_q;
+  case INPUT_KEY_x:                                  return INPUT_KEY_w;
+  case INPUT_KEY_z:                                  return INPUT_KEY_e;
+  case INPUT_KEY_Shift_L | INPUT_KEY_b:              return INPUT_KEY_r;
+  case INPUT_KEY_Shift_L | INPUT_KEY_d:              return INPUT_KEY_t;
+  case INPUT_KEY_Shift_L | INPUT_KEY_f:              return INPUT_KEY_y;
+  case INPUT_KEY_Shift_L | INPUT_KEY_h:              return INPUT_KEY_u;
+  case INPUT_KEY_Shift_L | INPUT_KEY_j:              return INPUT_KEY_i;
+  case INPUT_KEY_Shift_L | INPUT_KEY_l:              return INPUT_KEY_o;
+  case INPUT_KEY_Shift_L | INPUT_KEY_n:              return INPUT_KEY_p;
+  case INPUT_KEY_Shift_L | INPUT_KEY_p:              return INPUT_KEY_a;
+  case INPUT_KEY_Shift_L | INPUT_KEY_r:              return INPUT_KEY_s;
+  case INPUT_KEY_Shift_L | INPUT_KEY_t:              return INPUT_KEY_d;
+  case INPUT_KEY_Shift_L | INPUT_KEY_v:              return INPUT_KEY_f;
+  case INPUT_KEY_Shift_L | INPUT_KEY_x:              return INPUT_KEY_g;
+  case INPUT_KEY_Shift_L | INPUT_KEY_z:              return INPUT_KEY_h;
+  case INPUT_KEY_1:                                  return INPUT_KEY_j;
+  case INPUT_KEY_3:                                  return INPUT_KEY_k;
+  case INPUT_KEY_5:                                  return INPUT_KEY_l;
+  case INPUT_KEY_7:                                  return INPUT_KEY_Return;
+  case INPUT_KEY_9:                                  return INPUT_KEY_Shift_L;
+  case INPUT_KEY_Shift_L | INPUT_KEY_period:         return INPUT_KEY_z;
+  case INPUT_KEY_equal:                              return INPUT_KEY_x;
+  case INPUT_KEY_bracketright:                       return INPUT_KEY_c;
+  case INPUT_KEY_Shift_L | INPUT_KEY_semicolon:      return INPUT_KEY_v;
+  case INPUT_KEY_period:                             return INPUT_KEY_b;
+  case INPUT_KEY_Shift_L | INPUT_KEY_slash:          return INPUT_KEY_n;
+  case INPUT_KEY_Shift_L | INPUT_KEY_bracketright:   return INPUT_KEY_m;
+  case INPUT_KEY_Shift_L | INPUT_KEY_4:              return INPUT_KEY_Control_R;
+  case INPUT_KEY_Shift_L | INPUT_KEY_6:              return INPUT_KEY_space;
+
+  }
+
+  return INPUT_KEY_NONE;
+}
+
+static int recreated_key_down = 0;
+
+static void
+recreated_keypress( input_key k )
+{
+  input_key o;    /* remapped key */
+
+  if( k == INPUT_KEY_Shift_L )
+    recreated_key_down |= INPUT_KEY_Shift_L;
+
+  if( k >= 0 && k < 256 )
+    recreated_key_down = ( recreated_key_down & ~255 ) | k;
+
+  o = recreated_is_upkey( recreated_key_down );
+  if( o ) {
+    send_keyboard_release( o );
+    recreated_key_down = 0;
+    return;
+  }
+
+  o = recreated_is_downkey( recreated_key_down );
+  if( o ) {
+    send_keyboard_press( o );
+    recreated_key_down = 0;
+    return;
+  }
+}
+
+static int
 keypress( const input_event_key_t *event )
 {
   int swallow;
-  const keyboard_spectrum_keys_t *ptr;
 
-#ifdef USE_WIDGET
-  if( widget_level >= 0 ) {
-    widget_keyhandler( event->native_key );
+  if( ui_widget_level >= 0 ) {
+    ui_widget_keyhandler( event->native_key );
     return 0;
   }
-#endif				/* #ifdef USE_WIDGET */
 
   /* Escape => ask UI to end mouse grab, return if grab ended */
   if( event->native_key == INPUT_KEY_Escape && ui_mouse_grabbed ) {
@@ -104,68 +267,13 @@ keypress( const input_event_key_t *event )
 
   if( swallow ) return 0;
 
-  ptr = keyboard_get_spectrum_keys( event->spectrum_key );
-
-  if( ptr ) {
-    keyboard_press( ptr->key1 );
-    keyboard_press( ptr->key2 );
+  if( settings_current.recreated_spectrum ) {
+    recreated_keypress( event->spectrum_key );
+  } else {
+    send_keyboard_press( event->spectrum_key );
   }
 
-#ifdef USE_WIDGET
-  switch( event->native_key ) {
-  case INPUT_KEY_F1:
-    fuse_emulation_pause();
-    widget_do( WIDGET_TYPE_MENU, &widget_menu );
-    fuse_emulation_unpause();
-    break;
-  case INPUT_KEY_F2:
-    fuse_emulation_pause();
-    menu_file_savesnapshot( 0 );
-    fuse_emulation_unpause();
-    break;
-  case INPUT_KEY_F3:
-    fuse_emulation_pause();
-    menu_file_open( 0 );
-    fuse_emulation_unpause();
-    break;
-  case INPUT_KEY_F4:
-    fuse_emulation_pause();
-    menu_options_general( 0 );
-    fuse_emulation_unpause();
-    break;
-  case INPUT_KEY_F5:
-    fuse_emulation_pause();
-    menu_machine_reset( 0 );
-    fuse_emulation_unpause();
-    break;
-  case INPUT_KEY_F6:
-    fuse_emulation_pause();
-    menu_media_tape_write( 0 );
-    fuse_emulation_unpause();
-    break;
-  case INPUT_KEY_F7:
-    fuse_emulation_pause();
-    menu_media_tape_open( 0 );
-    fuse_emulation_unpause();
-    break;
-  case INPUT_KEY_F8:
-    menu_media_tape_play( 0 );
-    break;
-  case INPUT_KEY_F9:
-    fuse_emulation_pause();
-    menu_machine_select( 0 );
-    fuse_emulation_unpause();
-    break;
-  case INPUT_KEY_F10:
-    fuse_emulation_pause();
-    menu_file_exit( 0 );
-    fuse_emulation_unpause();
-    break;
-
-  default: break;		/* Remove gcc warning */
-
-  }
-#endif				/* #ifdef USE_WIDGET */
+  ui_popup_menu( event->native_key );
 
   return 0;
 }
@@ -173,13 +281,8 @@ keypress( const input_event_key_t *event )
 static int
 keyrelease( const input_event_key_t *event )
 {
-  const keyboard_spectrum_keys_t *ptr;
-
-  ptr = keyboard_get_spectrum_keys( event->spectrum_key );
-
-  if( ptr ) {
-    keyboard_release( ptr->key1 );
-    keyboard_release( ptr->key2 );
+  if( !settings_current.recreated_spectrum ) {
+    send_keyboard_release( event->spectrum_key );
   }
 
   /* Joystick emulation via keyboard keys */
@@ -219,6 +322,11 @@ get_fire_button_key( int which, input_key button )
     case INPUT_JOYSTICK_FIRE_8 : return settings_current.joystick_1_fire_8;
     case INPUT_JOYSTICK_FIRE_9 : return settings_current.joystick_1_fire_9;
     case INPUT_JOYSTICK_FIRE_10: return settings_current.joystick_1_fire_10;
+    case INPUT_JOYSTICK_FIRE_11: return settings_current.joystick_1_fire_11;
+    case INPUT_JOYSTICK_FIRE_12: return settings_current.joystick_1_fire_12;
+    case INPUT_JOYSTICK_FIRE_13: return settings_current.joystick_1_fire_13;
+    case INPUT_JOYSTICK_FIRE_14: return settings_current.joystick_1_fire_14;
+    case INPUT_JOYSTICK_FIRE_15: return settings_current.joystick_1_fire_15;
     default: break;
     }
     break;
@@ -235,6 +343,11 @@ get_fire_button_key( int which, input_key button )
     case INPUT_JOYSTICK_FIRE_8 : return settings_current.joystick_2_fire_8;
     case INPUT_JOYSTICK_FIRE_9 : return settings_current.joystick_2_fire_9;
     case INPUT_JOYSTICK_FIRE_10: return settings_current.joystick_2_fire_10;
+    case INPUT_JOYSTICK_FIRE_11: return settings_current.joystick_2_fire_11;
+    case INPUT_JOYSTICK_FIRE_12: return settings_current.joystick_2_fire_12;
+    case INPUT_JOYSTICK_FIRE_13: return settings_current.joystick_2_fire_13;
+    case INPUT_JOYSTICK_FIRE_14: return settings_current.joystick_2_fire_14;
+    case INPUT_JOYSTICK_FIRE_15: return settings_current.joystick_2_fire_15;
     default: break;
     }
     break;
@@ -252,21 +365,22 @@ do_joystick( const input_event_joystick_t *joystick_event, int press )
   int which;
 
 #ifdef USE_WIDGET
-  if( widget_level >= 0 ) {
-    if( press ) widget_keyhandler( joystick_event->button );
+  if( ui_widget_level >= 0 ) {
+    if( press ) ui_widget_keyhandler( joystick_event->button );
     return 0;
   }
 
+#ifndef GEKKO /* Home button opens the menu on Wii */
   switch( joystick_event->button ) {
   case INPUT_JOYSTICK_FIRE_2:
-    fuse_emulation_pause();
-    widget_do( WIDGET_TYPE_MENU, &widget_menu );
-    fuse_emulation_unpause();
+    if( press ) ui_popup_menu( INPUT_KEY_F1 );
     break;
 
   default: break;		/* Remove gcc warning */
 
   }
+#endif  /* #ifndef GEKKO */
+
 #endif				/* #ifdef USE_WIDGET */
 
   which = joystick_event->which;

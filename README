@@ -1,5 +1,5 @@
-The Free Unix Spectrum Emulator (Fuse) 0.10.0.2
-===============================================
+The Free Unix Spectrum Emulator (Fuse) 1.5.6
+============================================
 
 Fuse (the Free Unix Spectrum Emulator) was originally, and somewhat
 unsurprisingly, an emulator of the ZX Spectrum (a popular 1980s home
@@ -24,8 +24,14 @@ What Fuse does have:
 * Emulation of some of the printers you could attach to a Spectrum.
 * Support for the RZX input recording file format, including
   rollback and 'competition mode'.
-* Emulation of the DivIDE, Interface I, Kempston mouse, Spectrum +3e,
-  ZXATASP, ZXCF, Beta 128 and +D interfaces.
+* Emulation of the Currah µSource, DivIDE, DivMMC, Interface 1, Kempston mouse,
+  Multiface One/128/3, Spectrum +3e, ZXATASP, ZXCF and ZXMMC interfaces.
+* Emulation of the Covox, Fuller audio box, Melodik and SpecDrum audio
+  interfaces.
+* Emulation of the Beta 128, +D, Didaktik 80/40, DISCiPLE and Opus Discovery
+  disk interfaces.
+* Emulation of the Spectranet and SpeccyBoot network interfaces.
+* Support for the Recreated ZX Spectrum Bluetooth keyboard.
 
 Help! <xyz> doesn't work
 ------------------------
@@ -33,7 +39,7 @@ Help! <xyz> doesn't work
 If you're having a problem using/running/building Fuse, the two places
 you're most likely to get help are the development mailing list
 <fuse-emulator-devel@lists.sf.net> or the official forums at
-<http://sourceforge.net/forum/?group_id=91293>.
+<http://sourceforge.net/p/fuse-emulator/discussion/>.
 
 What you'll need to run Fuse
 ----------------------------
@@ -55,8 +61,6 @@ Optional:
   * libpng: the ability to save screenshots
   * libxml2: the ability to load and save Fuse's current configuration
   * zlib: support for compressed RZX files
-  * samplerate: support for better beeper sound quality; get it from
-    http://www.mega-nerd.com/SRC/
 
 If you've used Fuse prior to version 0.5.0, note that the external
 utilities (tzxlist, etc) are now available separately from Fuse
@@ -66,62 +70,19 @@ Mac OS X
 
 * Either the native port by Fredrick Meunier, or the original version
   will compile on OS X 10.3 (Panther) or later.
+* On Mac OS X Lion you will need to use clang as gcc-llvm-4.2.1 fails to
+  correctly compile z80_ops.c.
 
 Windows
 
-* The Win32 and SDL UIs can be used under Windows, but the Win32 UI is
-  incomplete.
+* The Win32 and SDL UIs can be used under Windows.
+* pthreads-win32 library will give the ability to use posix threads, needed by
+  some peripherals.
 
 Building Fuse
 -------------
 
-To compile Fuse (see below for instructions for the OS X native port):
-
-$ ./configure
-
-There are now some options you can give to configure; `configure
---help' will list them all, but the most important are:
-
---with-fb		Use the framebuffer interface, rather than GTK+.
---with-sdl		Use the SDL interface, rather than GTK+.
---with-svgalib		Use the SVGAlib interface.
---without-gtk		Use the plain Xlib interface.
-
-If glib is installed on your system, Fuse will use this for a couple
-of things; however, it isn't necessary as libspectrum provides
-replacements for all the routines used by Fuse.
-
-Another useful option is `--with-local-prefix=DIRECTORY' which allows
-you to specify that you have some the the libraries needed by Fuse in
-`<DIRECTORY>/lib' and the necessary header files in
-`<DIRECTORY>/include'. If you specify the `--prefix' option to tell
-Fuse to install itself somewhere other than in /usr/local, that
-directory will automatically be searched as well.
-
-Then just:
-
-$ make
-
-and then
-
-$ make install
-
-if you want to place Fuse into the main directories on your system
-(under /usr/local by default, although you can change this with the
---prefix argument to 'configure'). You'll probably need to be root to
-do this bit.
-
-Once you've got Fuse configured and built, read the man page :-)
-
-Note that if you're using version of Fuse from CVS rather than one of
-the released tarballs, you'll need to run `autogen.sh' before running
-'configure' for the first time.
-
-Building the OS X version of Fuse
----------------------------------
-
-The native Cocoa port by Fredrick Meunier <fredm@spamcop.net> comes as
-a set of Xcode projects for libgcrypt, libspectrum and Fuse itself.
+See the file `INSTALL' for more detailed information.
 
 Closing comments
 ----------------
@@ -145,11 +106,9 @@ http://lists.sourceforge.net/lists/listinfo/fuse-emulator-devel
 and the Fuse project page on SourceForge,
 http://sourceforge.net/projects/fuse-emulator/
 
-If you're interested in more general Speccy related discussions, visit
-the Usenet group 'comp.sys.sinclair', but do read the FAQ
-( http://www.worldofspectrum.org/faq/index.html ) first!
+For Spectrum discussions not directly related to Fuse, visit either the
+Usenet newsgroup `comp.sys.sinclair' or the World of Spectrum forums
+<http://www.worldofspectrum.org/forums/>.
 
 Philip Kendall <philip-fuse@shadowmagic.org.uk>
-14 January 2009
-
-$Id: README 3957 2009-01-14 19:52:20Z pak21 $
+6th August, 2018

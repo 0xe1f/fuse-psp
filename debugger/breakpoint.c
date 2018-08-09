@@ -1,7 +1,8 @@
 /* breakpoint.c: a debugger breakpoint
-   Copyright (c) 2002-2008 Philip Kendall
-
-   $Id: breakpoint.c 3685 2008-06-21 12:37:24Z pak21 $
+   Copyright (c) 2002-2011 Philip Kendall
+   Copyright (c) 2013-2015 Sergio Baldoví
+   Copyright (c) 2015 Tom Seddon
+   Copyright (c) 2016 BogDan Vatra
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -33,8 +34,9 @@
 #include "debugger_internals.h"
 #include "event.h"
 #include "fuse.h"
-#include "memory.h"
+#include "memory_pages.h"
 #include "ui/ui.h"
+#include "utils.h"
 
 /* The current breakpoints */
 GSList *debugger_breakpoints;
@@ -79,9 +81,9 @@ static void add_time_event( gpointer data, gpointer user_data );
 
 /* Add a breakpoint */
 int
-debugger_breakpoint_add_address( debugger_breakpoint_type type, int page,
-				 libspectrum_word offset, size_t ignore,
-				 debugger_breakpoint_life life,
+debugger_breakpoint_add_address( debugger_breakpoint_type type, int source,
+                                 int page, libspectrum_word offset,
+                                 size_t ignore, debugger_breakpoint_life life,
 				 debugger_expression *condition )
 {
   debugger_breakpoint_value value;
@@ -98,6 +100,7 @@ debugger_breakpoint_add_address( debugger_breakpoint_type type, int page,
     fuse_abort();
   }
 
+  value.address.source = source;
   value.address.page = page;
   value.address.offset = offset;
 
@@ -131,8 +134,8 @@ debugger_breakpoint_add_port( debugger_breakpoint_type type,
 
 int
 debugger_breakpoint_add_time( debugger_breakpoint_type type,
-			      libspectrum_dword tstates, size_t ignore,
-			      debugger_breakpoint_life life,
+			      libspectrum_dword breakpoint_tstates,
+                              size_t ignore, debugger_breakpoint_life life,
 			      debugger_expression *condition )
 {
   debugger_breakpoint_value value;
@@ -147,7 +150,9 @@ debugger_breakpoint_add_time( debugger_breakpoint_type type,
     fuse_abort();
   }
 
-  value.time.tstates = tstates;
+  value.time.triggered = 0;
+  value.time.tstates = breakpoint_tstates;
+  value.time.initial_tstates = breakpoint_tstates;
 
   return breakpoint_add( type, value, ignore, life, condition );
 }
@@ -176,13 +181,8 @@ debugger_breakpoint_add_event( debugger_breakpoint_type type,
   }
 
   value.event.detail = NULL;
-  value.event.type = strdup( type_string );
-  value.event.detail = strdup( detail );
-  if( !value.event.type || !value.event.detail ) {
-    free( value.event.type );
-    free( value.event.detail );
-    return 1;
-  }
+  value.event.type = utils_safe_strdup( type_string );
+  value.event.detail = utils_safe_strdup( detail );
 
   return breakpoint_add( type, value, ignore, life, condition );
 }
@@ -194,11 +194,7 @@ breakpoint_add( debugger_breakpoint_type type, debugger_breakpoint_value value,
 {
   debugger_breakpoint *bp;
 
-  bp = malloc( sizeof( *bp ) );
-  if( !bp ) {
-    ui_error( UI_ERROR_ERROR, "Out of memory at %s:%d", __FILE__, __LINE__ );
-    return 1;
-  }
+  bp = libspectrum_new( debugger_breakpoint, 1 );
 
   bp->id = next_breakpoint_id++; bp->type = type;
   bp->value = value;
@@ -206,7 +202,7 @@ breakpoint_add( debugger_breakpoint_type type, debugger_breakpoint_value value,
   if( condition ) {
     bp->condition = debugger_expression_copy( condition );
     if( !bp->condition ) {
-      free( bp );
+      libspectrum_free( bp );
       return 1;
     }
   } else {
@@ -222,12 +218,10 @@ breakpoint_add( debugger_breakpoint_type type, debugger_breakpoint_value value,
 
   /* If this was a timed breakpoint, set an event to stop emulation
      at that point */
-  if( type == DEBUGGER_BREAKPOINT_TYPE_TIME ) {
-    int error;
+  if( type == DEBUGGER_BREAKPOINT_TYPE_TIME )
+    event_add( value.time.tstates, debugger_breakpoint_event );
 
-    error = event_add( value.time.tstates, debugger_breakpoint_event );
-    if( error ) return error;
-  }
+  ui_breakpoints_updated();
 
   return 0;
 }
@@ -237,19 +231,29 @@ int
 debugger_check( debugger_breakpoint_type type, libspectrum_dword value )
 {
   GSList *ptr; debugger_breakpoint *bp;
+  GSList *ptr_next;
+
+  int signal_breakpoints_updated = 0;
 
   switch( debugger_mode ) {
 
   case DEBUGGER_MODE_INACTIVE: return 0;
 
   case DEBUGGER_MODE_ACTIVE:
-    for( ptr = debugger_breakpoints; ptr; ptr = ptr->next ) {
+    for( ptr = debugger_breakpoints; ptr; ptr = ptr_next ) {
 
       bp = ptr->data;
+      ptr_next = ptr->next;
 
       if( breakpoint_check( bp, type, value ) ) {
-	debugger_mode = DEBUGGER_MODE_HALTED;
-	debugger_command_evaluate( bp->commands );
+        debugger_mode = DEBUGGER_MODE_HALTED;
+        debugger_command_evaluate( bp->commands );
+
+        if( bp->life == DEBUGGER_BREAKPOINT_LIFE_ONESHOT ) {
+          debugger_breakpoints = g_slist_remove( debugger_breakpoints, bp );
+          libspectrum_free( bp );
+          signal_breakpoints_updated = 1;
+        }
       }
 
     }
@@ -259,89 +263,51 @@ debugger_check( debugger_breakpoint_type type, libspectrum_dword value )
 
   }
 
+  if( signal_breakpoints_updated )
+      ui_breakpoints_updated();
+
   /* Debugger mode could have been reset by a breakpoint command */
   return ( debugger_mode == DEBUGGER_MODE_HALTED );
 }
 
-static int
-encode_bank_and_page( debugger_breakpoint_type type, libspectrum_word address )
+void
+debugger_breakpoint_reduce_tstates( libspectrum_dword tstates )
 {
-  memory_page *read_write, *page;
-  breakpoint_page_offset offset;
+  GSList *ptr;
+  debugger_breakpoint *bp;
+
+  if( debugger_mode != DEBUGGER_MODE_ACTIVE ) return;
+
+  for( ptr = debugger_breakpoints; ptr; ptr = ptr->next ) {
+    bp = ptr->data;
+
+    if( bp->type == DEBUGGER_BREAKPOINT_TYPE_TIME && !bp->value.time.triggered )
+      bp->value.time.tstates -= tstates;
+  }
+}
+
+static memory_page*
+get_page( debugger_breakpoint_type type, libspectrum_word address )
+{
+  memory_page *bank;
 
   switch( type ) {
   case DEBUGGER_BREAKPOINT_TYPE_EXECUTE:
   case DEBUGGER_BREAKPOINT_TYPE_READ:
-    read_write = memory_map_read;
+    bank = memory_map_read;
     break;
 
   case DEBUGGER_BREAKPOINT_TYPE_WRITE:
-    read_write = memory_map_write;
+    bank = memory_map_write;
     break;
 
   default:
     ui_error( UI_ERROR_ERROR,
-	      "encode_bank_and_page: unexpected breakpoint type %d", type );
-    return -1;
-  }
-
-  page = &read_write[ address >> 13 ];
-
-  switch( page->bank ) {
-  case MEMORY_BANK_HOME:
-    offset = page->writable ? BREAKPOINT_PAGE_RAM : BREAKPOINT_PAGE_ROM;
-    break;
-  case MEMORY_BANK_DOCK: offset = BREAKPOINT_PAGE_DOCK; break;
-  case MEMORY_BANK_EXROM: offset = BREAKPOINT_PAGE_EXROM; break;
-  case MEMORY_BANK_ROMCS: offset = BREAKPOINT_PAGE_ROMCS; break;
-  default: return -1;
-  }
-
-  return offset + page->page_num;
-}
-
-int
-debugger_page_hash( const char *text )
-{
-  int offset;
-
-  switch( tolower( (unsigned char)text[0] ) ) {
-    
-  case 'c': offset = BREAKPOINT_PAGE_ROMCS; break;
-  case 'd': offset = BREAKPOINT_PAGE_DOCK; break;
-  case 'r': offset = BREAKPOINT_PAGE_ROM; break;
-  case 'x': offset = BREAKPOINT_PAGE_EXROM; break;
-
-  default:
-    ui_error( UI_ERROR_ERROR,
-	      "%s:debugger_page_hash: unknown page letter '%c'", __FILE__,
-	      text[0] );
+	      "%s:get_page: unexpected breakpoint type %d", __FILE__, type );
     fuse_abort();
   }
 
-  offset += atoi( &text[1] );
-
-  return offset;
-}
-
-char*
-debugger_breakpoint_decode_page( char *buffer, size_t n, int page )
-{
-  if( page >= BREAKPOINT_PAGE_ROMCS ) {
-    snprintf( buffer, n, "C%d", page - BREAKPOINT_PAGE_ROMCS );
-  } else if( page >= BREAKPOINT_PAGE_EXROM ) {
-    snprintf( buffer, n, "X%d", page - BREAKPOINT_PAGE_EXROM );
-  } else if( page >= BREAKPOINT_PAGE_DOCK ) {
-    snprintf( buffer, n, "D%d", page - BREAKPOINT_PAGE_DOCK );
-  } else if( page >= BREAKPOINT_PAGE_ROM ) {
-    snprintf( buffer, n, "R%d", page - BREAKPOINT_PAGE_ROM );
-  } else if( page >= BREAKPOINT_PAGE_RAM ) {
-    snprintf( buffer, n, "%d", page - BREAKPOINT_PAGE_RAM );
-  } else {
-    snprintf( buffer, n, "[Unknown page %d]", page );
-  }
-
-  return buffer;
+  return &bank[ address >> MEMORY_PAGE_SIZE_LOGARITHM ];
 }
 
 int
@@ -349,16 +315,11 @@ debugger_breakpoint_trigger( debugger_breakpoint *bp )
 {
   if( bp->ignore ) { bp->ignore--; return 0; }
 
-  if( bp->condition && !debugger_expression_evaluate( bp->condition ) )
-    return 0;
-
-  if( bp->life == DEBUGGER_BREAKPOINT_LIFE_ONESHOT ) {
-    debugger_breakpoints = g_slist_remove( debugger_breakpoints, bp );
-    free( bp );
-  }
-
   if( bp->type == DEBUGGER_BREAKPOINT_TYPE_TIME )
     bp->value.time.triggered = 1;
+
+  if( bp->condition && !debugger_expression_evaluate( bp->condition ) )
+    return 0;
 
   return 1;
 }
@@ -369,8 +330,6 @@ static int
 breakpoint_check( debugger_breakpoint *bp, debugger_breakpoint_type type,
 		  libspectrum_dword value )
 {
-  int page;
-
   if( bp->type != type ) return 0;
 
   switch( type ) {
@@ -379,15 +338,15 @@ breakpoint_check( debugger_breakpoint *bp, debugger_breakpoint_type type,
   case DEBUGGER_BREAKPOINT_TYPE_READ:
   case DEBUGGER_BREAKPOINT_TYPE_WRITE:
 
-    page = bp->value.address.page;
-
-    /* If page == -1, value must match exactly; otherwise, the page and
-       the offset must match */
-    if( page == -1 ) {
+    /* If source == memory_source_any, value must match exactly; otherwise,
+       the source, page and offset must match */
+    if( bp->value.address.source == memory_source_any ) {
       if( bp->value.address.offset != value ) return 0;
     } else {
-      if( page != encode_bank_and_page( type, value ) ) return 0;
-      if( bp->value.address.offset != ( value & 0x3fff ) ) return 0;
+      memory_page *page = get_page( type, value );
+      if( bp->value.address.source != page->source ||
+          bp->value.address.page != page->page_num ||
+          bp->value.address.offset != ( value & 0x3fff ) ) return 0;
     }
     break;
 
@@ -441,7 +400,9 @@ debugger_breakpoint_remove( size_t id )
     event_foreach( remove_time, &remove );
   }
 
-  free( bp );
+  libspectrum_free( bp );
+
+  ui_breakpoints_updated();
 
   return 0;
 }
@@ -493,6 +454,7 @@ int
 debugger_breakpoint_clear( libspectrum_word address )
 {
   GSList *ptr;
+  gpointer ptr_data;
 
   int found = 0;
 
@@ -504,11 +466,12 @@ debugger_breakpoint_clear( libspectrum_word address )
 
     found++;
 
-    free_breakpoint( ptr->data, NULL );
-
-    debugger_breakpoints = g_slist_remove( debugger_breakpoints, ptr->data );
+    ptr_data = ptr->data;
+    debugger_breakpoints = g_slist_remove( debugger_breakpoints, ptr_data );
     if( debugger_mode == DEBUGGER_MODE_ACTIVE && !debugger_breakpoints )
       debugger_mode = DEBUGGER_MODE_INACTIVE;
+
+    free_breakpoint( ptr_data, NULL );
   }
 
   if( !found ) {
@@ -517,6 +480,8 @@ debugger_breakpoint_clear( libspectrum_word address )
     } else {
       ui_error( UI_ERROR_ERROR, "No breakpoint at 0x%04x", address );
     }
+  } else {
+      ui_breakpoints_updated();
   }
 
   return 0;
@@ -534,7 +499,7 @@ find_breakpoint_by_address( gconstpointer data, gconstpointer user_data )
     return 1;
 
   /* Ignore all page-specific breakpoints */
-  if( bp->value.address.page != -1 ) return 1;
+  if( bp->value.address.source != memory_source_any ) return 1;
 
   return bp->value.address.offset - address;
 }
@@ -552,6 +517,8 @@ debugger_breakpoint_remove_all( void )
   /* Restart the breakpoint numbering */
   next_breakpoint_id = 1;
 
+  ui_breakpoints_updated();
+
   return 0;
 }
 
@@ -562,8 +529,8 @@ free_breakpoint( gpointer data, gpointer user_data GCC_UNUSED )
 
   switch( bp->type ) {
   case DEBUGGER_BREAKPOINT_TYPE_EVENT:
-    free( bp->value.event.type );
-    free( bp->value.event.detail );
+    libspectrum_free( bp->value.event.type );
+    libspectrum_free( bp->value.event.detail );
     break;
 
   case DEBUGGER_BREAKPOINT_TYPE_EXECUTE:
@@ -577,9 +544,9 @@ free_breakpoint( gpointer data, gpointer user_data GCC_UNUSED )
   }
 
   if( bp->condition ) debugger_expression_delete( bp->condition );
-  if( bp->commands ) free( bp->commands );
+  if( bp->commands ) libspectrum_free( bp->commands );
 
-  free( bp );
+  libspectrum_free( bp );
 }
 
 /* Ignore breakpoint 'id' the next 'ignore' times it hits */
@@ -621,14 +588,13 @@ debugger_breakpoint_set_commands( size_t id, const char *commands )
   debugger_breakpoint *bp = get_breakpoint_by_id( id );
   if( !bp ) return 1;
 
-  free( bp->commands );
-  bp->commands = strdup( commands );
-  if( !bp->commands ) return 1;
+  libspectrum_free( bp->commands );
+  bp->commands = utils_safe_strdup( commands );
 
   return 0;
 }
 
-/* Add events corresponding to all the time events to happen during
+/* Add events corresponding to all the time breakpoints to happen during
    this frame */
 int
 debugger_add_time_events( void )
@@ -642,8 +608,9 @@ add_time_event( gpointer data, gpointer user_data GCC_UNUSED )
 {
   debugger_breakpoint *bp = data;
 
-  if( bp->type == DEBUGGER_BREAKPOINT_TYPE_TIME ) {
+  if( bp->type == DEBUGGER_BREAKPOINT_TYPE_TIME && bp->value.time.triggered ) {
     bp->value.time.triggered = 0;
+    bp->value.time.tstates = bp->value.time.initial_tstates;
     event_add( bp->value.time.tstates, debugger_breakpoint_event );
   }
 }

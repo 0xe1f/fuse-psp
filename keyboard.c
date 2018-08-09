@@ -1,7 +1,5 @@
 /* keyboard.c: Routines for dealing with the Spectrum's keyboard
-   Copyright (c) 1999-2000 Philip Kendall
-
-   $Id: keyboard.c 3265 2007-10-28 12:35:45Z pak21 $
+   Copyright (c) 1999-2016 Philip Kendall
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -31,9 +29,9 @@
 
 #include <libspectrum.h>
 
-#include "ui/ui.h"
+#include "infrastructure/startup_manager.h"
 #include "keyboard.h"
-#include "scld.h"
+#include "ui/ui.h"
 
 /* Bit masks for each of the eight keyboard half-rows; `AND' the selected
    ones of these to get the value to return
@@ -107,6 +105,14 @@ static struct spectrum_keys_wrapper spectrum_keys_table[] = {
   { INPUT_KEY_slash,       { KEYBOARD_v,     KEYBOARD_Symbol } },
   { INPUT_KEY_Shift_R,     { KEYBOARD_NONE,  KEYBOARD_Caps   } },
 
+  { INPUT_KEY_asterisk,    { KEYBOARD_b,     KEYBOARD_Symbol } },
+  { INPUT_KEY_dollar,      { KEYBOARD_4,     KEYBOARD_Symbol } },
+  { INPUT_KEY_exclam,      { KEYBOARD_1,     KEYBOARD_Symbol } },
+  { INPUT_KEY_less,        { KEYBOARD_r,     KEYBOARD_Symbol } },
+  { INPUT_KEY_parenright,  { KEYBOARD_9,     KEYBOARD_Symbol } },
+  { INPUT_KEY_colon,       { KEYBOARD_z,     KEYBOARD_Symbol } },
+  { INPUT_KEY_plus,        { KEYBOARD_k,     KEYBOARD_Symbol } },
+
   { INPUT_KEY_Control_L,   { KEYBOARD_NONE,  KEYBOARD_Symbol } },
   { INPUT_KEY_Alt_L,       { KEYBOARD_NONE,  KEYBOARD_Symbol } },
   { INPUT_KEY_Meta_L,      { KEYBOARD_NONE,  KEYBOARD_Symbol } },
@@ -120,10 +126,12 @@ static struct spectrum_keys_wrapper spectrum_keys_table[] = {
   { INPUT_KEY_Control_R,   { KEYBOARD_NONE,  KEYBOARD_Symbol } },
   { INPUT_KEY_Mode_switch, { KEYBOARD_NONE,  KEYBOARD_Symbol } },
 
-  { INPUT_KEY_Left,        { KEYBOARD_5,     KEYBOARD_Caps   } },
-  { INPUT_KEY_Down,        { KEYBOARD_6,     KEYBOARD_Caps   } },
-  { INPUT_KEY_Up,          { KEYBOARD_7,     KEYBOARD_Caps   } },
-  { INPUT_KEY_Right,       { KEYBOARD_8,     KEYBOARD_Caps   } },
+  { INPUT_KEY_Left,        { KEYBOARD_5,     KEYBOARD_NONE   } },
+  { INPUT_KEY_Down,        { KEYBOARD_6,     KEYBOARD_NONE   } },
+  { INPUT_KEY_Up,          { KEYBOARD_7,     KEYBOARD_NONE   } },
+  { INPUT_KEY_Right,       { KEYBOARD_8,     KEYBOARD_NONE   } },
+
+  { INPUT_KEY_KP_Enter,    { KEYBOARD_Enter, KEYBOARD_NONE   } },
 
   { INPUT_KEY_NONE, { KEYBOARD_NONE, KEYBOARD_NONE } } /* End marker */
 
@@ -253,15 +261,14 @@ struct key_text_t key_text_table[] = {
 
   { KEYBOARD_JOYSTICK_FIRE, "Joystick Fire" },
 
-  { -1, NULL },		/* End marker */
+  { KEYBOARD_NONE, NULL },		/* End marker */
 
 };
 
 static GHashTable *key_text;
 
-/* Called `fuse_keyboard_init' as svgalib pollutes the global namespace
-   with keyboard_init... */
-void fuse_keyboard_init(void)
+static int
+keyboard_init( void *context )
 {
   struct key_info *ptr;
   struct spectrum_keys_wrapper *ptr2;
@@ -288,9 +295,31 @@ void fuse_keyboard_init(void)
 
   key_text = g_hash_table_new( g_int_hash, g_int_equal );
 
-  for( ptr4 = key_text_table; ptr4->key != -1; ptr4++ )
+  for( ptr4 = key_text_table; ptr4->text != NULL; ptr4++ )
     g_hash_table_insert( key_text, &( ptr4->key ), &( ptr4->text ) );
 
+  return 0;
+}
+
+static void
+keyboard_end( void )
+{
+  g_hash_table_destroy( keyboard_data );
+  g_hash_table_destroy( spectrum_keys );
+  g_hash_table_destroy( keysyms_hash );
+  g_hash_table_destroy( key_text );
+}
+
+void
+keyboard_register_startup( void )
+{
+  startup_manager_module dependencies[] = {
+    STARTUP_MANAGER_MODULE_LIBSPECTRUM,
+    STARTUP_MANAGER_MODULE_SETUID
+  };
+  startup_manager_register( STARTUP_MANAGER_MODULE_KEYBOARD, dependencies,
+                            ARRAY_SIZE( dependencies ), keyboard_init,
+                            keyboard_end, NULL );
 }
 
 libspectrum_byte
@@ -359,4 +388,22 @@ keyboard_key_text( keyboard_key_name key )
   ptr = g_hash_table_lookup( key_text, &key );
 
   return ptr ? *ptr : "[Unknown key]";
+}
+
+libspectrum_byte
+keyboard_simulate_keypress( libspectrum_byte porth, keyboard_key_name key )
+{
+  libspectrum_byte r = 0xff;
+  struct key_bit *data;
+
+  data = g_hash_table_lookup( keyboard_data, &key );
+
+  if( data ) {
+    libspectrum_byte mask = (1 << data->port);
+    if( !(porth & mask) ) {
+      r &= ~data->bit;
+    }
+  }
+
+  return r;
 }

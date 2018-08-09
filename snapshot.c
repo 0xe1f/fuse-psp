@@ -1,7 +1,5 @@
 /* snapshot.c: snapshot handling routines
-   Copyright (c) 1999-2004 Philip Kendall
-
-   $Id: snapshot.c 3703 2008-06-30 20:36:11Z pak21 $
+   Copyright (c) 1999-2012 Philip Kendall
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -27,52 +25,22 @@
 
 #include <libspectrum.h>
 
-#include "ay.h"
-#include "disk/beta.h"
-#include "disk/plusd.h"
 #include "fuse.h"
-#include "if2.h"
-#include "joystick.h"
 #include "machine.h"
-#include "memory.h"
+#include "memory_pages.h"
 #include "module.h"
-#include "scld.h"
-#include "slt.h"
+#include "settings.h"
 #include "snapshot.h"
 #include "ui/ui.h"
-#include "ula.h"
 #include "utils.h"
-#include "z80/z80.h"
-#include "zxatasp.h"
-#include "zxcf.h"
 
-#ifdef PSP
-/* 'filename' is used to pacify the file format determining routine */
-int snapshot_read_file(const char *filename, FILE *fptr)
-#else
 int snapshot_read( const char *filename )
-#endif
 {
   utils_file file;
   libspectrum_snap *snap = libspectrum_snap_alloc();
   int error;
 
-#ifdef PSP
-  {
-    /* PSP version reads from an open and positioned file stream */
-    long initial_pos = ftell(fptr);
-    fseek(fptr, 0, SEEK_END);
-    file.length = ftell(fptr) - initial_pos; /* determine size of block */
-    fseek(fptr, initial_pos, SEEK_SET); /* regress to previous position */
-
-    if (!(file.buffer = malloc(file.length)))
-      error = 1;
-    else if ((error = (fread(file.buffer, file.length, 1, fptr) != 1)))
-      free(file.buffer);
-  }
-#else
   error = utils_read_file( filename, &file );
-#endif
   if( error ) { libspectrum_snap_free( snap ); return error; }
 
   error = libspectrum_snap_read( snap, file.buffer, file.length,
@@ -82,10 +50,7 @@ int snapshot_read( const char *filename )
     return error;
   }
 
-  if( utils_close_file( &file ) ) {
-    libspectrum_snap_free( snap );
-    return 1;
-  }
+  utils_close_file( &file );
 
   error = snapshot_copy_from( snap );
   if( error ) { libspectrum_snap_free( snap ); return error; }
@@ -113,72 +78,40 @@ snapshot_read_buffer( const unsigned char *buffer, size_t length,
   return 0;
 }
 
-static int
-try_fallback_machine( libspectrum_machine machine )
-{
-  int error;
-
-  /* If we failed on a +3 or +3e snapshot, try falling back to +2A (in
-     case we were compiled without lib765) */
-  if( machine == LIBSPECTRUM_MACHINE_PLUS3  ||
-      machine == LIBSPECTRUM_MACHINE_PLUS3E    ) {
-
-    error = machine_select( LIBSPECTRUM_MACHINE_PLUS2A );
-    if( error ) {
-      ui_error( UI_ERROR_ERROR,
-		"Loading a %s snapshot, but neither that nor %s available",
-		libspectrum_machine_name( machine ),
-		libspectrum_machine_name( LIBSPECTRUM_MACHINE_PLUS2A )    );
-      return 1;
-    } else {
-      ui_error( UI_ERROR_WARNING,
-		"Loading a %s snapshot, but that's not available. "
-		"Using %s instead",
-		libspectrum_machine_name( machine ),
-		libspectrum_machine_name( LIBSPECTRUM_MACHINE_PLUS2A )  );
-    }
-
-  } else {			/* Not trying a +3 or +3e snapshot */
-    ui_error( UI_ERROR_ERROR,
-	      "Loading a %s snapshot, but that's not available",
-	      libspectrum_machine_name( machine ) );
-  }
-  
-  return 0;
-}
-
 int
 snapshot_copy_from( libspectrum_snap *snap )
 {
-  int capabilities, error;
+  int error;
   libspectrum_machine machine;
 
+  periph_disable_optional();
   module_snapshot_enabled( snap );
 
   machine = libspectrum_snap_machine( snap );
 
+  settings_current.late_timings = libspectrum_snap_late_timings( snap );
+
   if( machine != machine_current->machine ) {
     error = machine_select( machine );
     if( error ) {
-      error = try_fallback_machine( machine ); if( error ) return error;
+      ui_error( UI_ERROR_ERROR,
+		"Loading a %s snapshot, but that's not available",
+		libspectrum_machine_name( machine ) );
     }
   } else {
     machine_reset( 0 );
   }
 
-  capabilities = machine_current->capabilities;
-
   module_snapshot_from( snap );
+
+  /* Need to reset memory_map_[read|write] after all modules have had a turn
+     initialising from the snapshot */
+  machine_current->memory_map();
 
   return 0;
 }
 
-#ifdef PSP
-/* 'filename' is used to pacify the file format determining routine */
-int snapshot_write_file(const char *filename, FILE *fptr)
-#else
 int snapshot_write( const char *filename )
-#endif
 {
   libspectrum_id_t type;
   libspectrum_class_t class;
@@ -204,6 +137,7 @@ int snapshot_write( const char *filename )
 
   flags = 0;
   length = 0;
+  buffer = NULL;
   error = libspectrum_snap_write( &buffer, &length, &flags, snap, type,
 				  fuse_creator, 0 );
   if( error ) { libspectrum_snap_free( snap ); return error; }
@@ -221,16 +155,12 @@ int snapshot_write( const char *filename )
   }
 
   error = libspectrum_snap_free( snap );
-  if( error ) { free( buffer ); return 1; }
+  if( error ) { libspectrum_free( buffer ); return 1; }
 
-#ifdef PSP
-  error = (fwrite(buffer, length, 1, fptr) != 1);
-#else
   error = utils_write_file( filename, buffer, length );
-#endif
-  if( error ) { free( buffer ); return error; }
+  if( error ) { libspectrum_free( buffer ); return error; }
 
-  free( buffer );
+  libspectrum_free( buffer );
 
   return 0;
 
@@ -240,6 +170,7 @@ int
 snapshot_copy_to( libspectrum_snap *snap )
 {
   libspectrum_snap_set_machine( snap, machine_current->machine );
+  libspectrum_snap_set_late_timings( snap, settings_current.late_timings );
 
   module_snapshot_to( snap );
 

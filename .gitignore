@@ -3,5 +3,3 @@ EBOOT.PBP
 PARAM.SFO
 fusepsp.elf
 *.a
-psp_aux/libpsp/stockfont.h
-psp_aux/libpsp/genfont

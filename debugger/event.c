@@ -1,7 +1,6 @@
 /* event.c: Debugger events
    Copyright (c) 2008 Philip Kendall
-
-   $Id$
+   Copyright (c) 2015 Sergio Baldoví
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -26,6 +25,9 @@
 #include <config.h>
 
 #include <string.h>
+#ifdef HAVE_STRINGS_STRCASECMP
+#include <strings.h>
+#endif      /* #ifdef HAVE_STRINGS_STRCASECMP */
 
 #ifdef HAVE_LIB_GLIB
 #include <glib.h>
@@ -36,16 +38,14 @@
 #include "debugger_internals.h"
 #include "fuse.h"
 #include "ui/ui.h"
+#include "utils.h"
 
 static GArray *registered_events;
 
-int
+void
 debugger_event_init( void )
 {
   registered_events = g_array_new( FALSE, FALSE, sizeof( debugger_event_t ) );
-  if( !registered_events ) return 1;
-
-  return 0;
 }
 
 int
@@ -53,15 +53,8 @@ debugger_event_register( const char *type, const char *detail )
 {
   debugger_event_t event;
 
-  event.detail = NULL;
-  event.type = strdup( type );
-  event.detail = strdup( detail );
-  if( !event.type || !event.detail ) {
-    ui_error( UI_ERROR_ERROR, "out of memory at %s:%d", __FILE__, __LINE__ );
-    free( event.type );
-    free( event.detail );
-    return -1;
-  }
+  event.type = utils_safe_strdup( type );
+  event.detail = utils_safe_strdup( detail );
 
   g_array_append_val( registered_events, event );
 
@@ -73,6 +66,7 @@ event_matches( debugger_event_t *event, const char *type, const char *detail )
 {
   if( strcasecmp( type, event->type ) ) return 0;
   if( strcmp( detail, "*" ) == 0 ) return 1;
+  if( strcmp( event->detail, "*" ) == 0 ) return 1;
   return strcasecmp( detail, event->detail ) == 0;
 }
 
@@ -95,7 +89,10 @@ void
 debugger_event( int event_code )
 {
   debugger_event_t event;
-  GSList *ptr;
+  debugger_breakpoint *bp;
+  GSList *ptr, *ptr_next;
+
+  int signal_breakpoints_updated = 0;
 
   if( event_code >= registered_events->len ) {
     ui_error( UI_ERROR_ERROR, "internal error: invalid debugger event %d",
@@ -105,14 +102,45 @@ debugger_event( int event_code )
 
   event = g_array_index( registered_events, debugger_event_t, event_code );
 
-  for( ptr = debugger_breakpoints; ptr; ptr = ptr->next ) {
-    debugger_breakpoint *bp = ptr->data;
+  for( ptr = debugger_breakpoints; ptr; ptr = ptr_next ) {
+
+    bp = ptr->data;
+    ptr_next = ptr->next;
+
     if( bp->type != DEBUGGER_BREAKPOINT_TYPE_EVENT ) continue;
 
     if( event_matches( &bp->value.event, event.type, event.detail ) &&
         debugger_breakpoint_trigger( bp ) ) {
       debugger_mode = DEBUGGER_MODE_HALTED;
       debugger_command_evaluate( bp->commands );
+
+      if( bp->life == DEBUGGER_BREAKPOINT_LIFE_ONESHOT ) {
+        debugger_breakpoints = g_slist_remove( debugger_breakpoints, bp );
+        libspectrum_free( bp );
+        signal_breakpoints_updated = 1;
+      }
     }
   }
+
+  if( signal_breakpoints_updated )
+      ui_breakpoints_updated();
+}
+
+/* Tidy-up function called at end of emulation */
+void
+debugger_event_end( void )
+{
+  int i;
+  debugger_event_t event;
+
+  if( !registered_events ) return;
+
+  for( i = 0; i < registered_events->len; i++ ) {
+    event = g_array_index( registered_events, debugger_event_t, i );
+    libspectrum_free( event.detail );
+    libspectrum_free( event.type );
+  }
+
+  g_array_free( registered_events, TRUE );
+  registered_events = NULL;
 }

@@ -1,7 +1,6 @@
 /* breakpoint.h: a debugger breakpoint
-   Copyright (c) 2002-2008 Philip Kendall
-
-   $Id: breakpoint.h 3662 2008-06-09 11:19:29Z pak21 $
+   Copyright (c) 2002-2011 Philip Kendall
+   Copyright (c) 2013 Sergio Baldoví
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -25,6 +24,8 @@
 
 #ifndef FUSE_DEBUGGER_BREAKPOINT_H
 #define FUSE_DEBUGGER_BREAKPOINT_H
+
+#include "memory_pages.h"
 
 /* Types of breakpoint */
 typedef enum debugger_breakpoint_type {
@@ -51,19 +52,19 @@ extern const char debugger_breakpoint_life_abbr[][5];
 
 typedef struct debugger_breakpoint_address {
 
+  /* Which memory device we are interested in. memory_source_any for an
+     absolute address */
+  int source;
+
+  /* The page number from the source we are interested in. Not used for
+     MEMORY_SOURCE_ANY */
   int page;
+
+  /* The offset within the page, or the absolute address for
+     MEMORY_SOURCE_ANY */
   libspectrum_word offset;
 
 } debugger_breakpoint_address;
-
-/* Offsets used to encode various bank types in the above 'page' variable */
-typedef enum breakpoint_page_offset {
-  BREAKPOINT_PAGE_RAM = 0,
-  BREAKPOINT_PAGE_ROM = 32,
-  BREAKPOINT_PAGE_DOCK = 40,
-  BREAKPOINT_PAGE_EXROM = 48,
-  BREAKPOINT_PAGE_ROMCS = 56,
-} breakpoint_page_offset;
 
 typedef struct debugger_breakpoint_port {
 
@@ -74,6 +75,7 @@ typedef struct debugger_breakpoint_port {
 
 typedef struct debugger_breakpoint_time {
   libspectrum_dword tstates;
+  libspectrum_dword initial_tstates;
   int triggered;
 } debugger_breakpoint_time;
 
@@ -114,10 +116,13 @@ extern GSList *debugger_breakpoints;
 
 int debugger_check( debugger_breakpoint_type type, libspectrum_dword value );
 
+void
+debugger_breakpoint_reduce_tstates( libspectrum_dword tstates );
+
 /* Add a new breakpoint */
 int
 debugger_breakpoint_add_address(
-  debugger_breakpoint_type type, int page, libspectrum_word offset,
+  debugger_breakpoint_type type, int source, int page, libspectrum_word offset,
   size_t ignore, debugger_breakpoint_life life, debugger_expression *condition
 );
 
@@ -129,7 +134,7 @@ debugger_breakpoint_add_port(
 
 int
 debugger_breakpoint_add_time(
-  debugger_breakpoint_type type, libspectrum_dword tstates,
+  debugger_breakpoint_type type, libspectrum_dword breakpoint_tstates,
   size_t ignore, debugger_breakpoint_life life, debugger_expression *condition
 );
 
@@ -142,8 +147,5 @@ debugger_breakpoint_add_event(
 /* Add events corresponding to all the time breakpoints to happen
    during this frame */
 int debugger_add_time_events( void );
-
-char*
-debugger_breakpoint_decode_page( char *buffer, size_t n, int page );
 
 #endif				/* #ifndef FUSE_DEBUGGER_BREAKPOINT_H */

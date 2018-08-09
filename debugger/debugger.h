@@ -1,7 +1,5 @@
 /* debugger.h: Fuse's monitor/debugger
-   Copyright (c) 2002-2008 Philip Kendall
-
-   $Id: debugger.h 3632 2008-05-26 19:51:17Z pak21 $
+   Copyright (c) 2002-2016 Philip Kendall
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -49,10 +47,9 @@ extern enum debugger_mode_t debugger_mode;
 /* Which base should we display things in */
 extern int debugger_output_base;
 
-int debugger_init( void );
-int debugger_reset( void );
+void debugger_register_startup( void );
 
-int debugger_end( void );
+void debugger_reset( void );
 
 int debugger_trap( void );	/* Activate the debugger */
 
@@ -65,8 +62,12 @@ int debugger_run( void ); /* Set debugger_mode so that emulation will occur */
 void debugger_disassemble( char *buffer, size_t buflen, size_t *length,
 			   libspectrum_word address );
 
+/* Get an instruction relative to a specific address */
+libspectrum_word debugger_search_instruction( libspectrum_word address,
+                                              int delta );
+
 /* Evaluate a debugger command */
-int debugger_command_evaluate( const char *command );
+void debugger_command_evaluate( const char *command );
 
 /* Get a deparsed expression */
 int debugger_expression_deparse( char *buffer, size_t length,
@@ -77,5 +78,23 @@ int debugger_event_register( const char *type, const char *detail );
 
 /* Fire off a debugger event */
 void debugger_event( int event_code );
+
+/* Exit the emulator */
+void debugger_exit_emulator( debugger_expression *exit_code_expression );
+
+/* Get the exit code to be used when exiting the emulator */
+int debugger_get_exit_code( void );
+
+/* Debugger system variables */
+typedef libspectrum_dword (*debugger_get_system_variable_fn_t)( void );
+typedef void (*debugger_set_system_variable_fn_t)( libspectrum_dword value );
+
+void debugger_system_variable_register(
+  const char *type, const char *detail,
+  debugger_get_system_variable_fn_t get,
+  debugger_set_system_variable_fn_t set );
+
+/* Unit tests */
+int debugger_disassemble_unittest( void );
 
 #endif				/* #ifndef FUSE_DEBUGGER_H */

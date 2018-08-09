@@ -1,7 +1,6 @@
 /* specplus3.h: Spectrum +2A/+3 specific routines
-   Copyright (c) 1999-2004 Philip Kendall
-
-   $Id: specplus3.h 3622 2008-05-17 14:35:41Z fredm $
+   Copyright (c) 1999-2013 Philip Kendall
+   Copyright (c) 2015 Stuart Brady
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -30,14 +29,14 @@
 
 #include "machine.h"
 #include "periph.h"
-
-extern const periph_t specplus3_peripherals[];
-extern const size_t specplus3_peripherals_count;
+#include "peripherals/disk/fdd.h"
 
 int specplus3_port_from_ula( libspectrum_word port );
 
 int specplus3_init( fuse_machine_info *machine );
+void specplus3_765_update_fdd( void );
 void specplus3_765_init( void );
+void specplus3_765_reset( void );
 
 int specplus3_plus2a_common_reset( void );
 void specplus3_fdc_reset( void );
@@ -46,18 +45,23 @@ int specplus3_shutdown( void );
 
 void specplus3_memoryport_write( libspectrum_word port, libspectrum_byte b );
 void specplus3_memoryport2_write( libspectrum_word port, libspectrum_byte b );
+void specplus3_memoryport2_write_internal( libspectrum_word port,
+                                           libspectrum_byte b );
+
+libspectrum_byte specplus3_fdc_status( libspectrum_word port, libspectrum_byte *attached );
+libspectrum_byte specplus3_fdc_read( libspectrum_word port, libspectrum_byte *attached );
+void specplus3_fdc_write( libspectrum_word port, libspectrum_byte data );
 
 int specplus3_memory_map( void );
 
 typedef enum specplus3_drive_number {
   SPECPLUS3_DRIVE_A = 0,	/* First drive must be number zero */
   SPECPLUS3_DRIVE_B,
+  SPECPLUS3_NUM_DRIVES,
 } specplus3_drive_number;
 
 int specplus3_disk_insert( specplus3_drive_number which, const char *filename,
                            int autoload );
-int specplus3_disk_eject( specplus3_drive_number which, int save );
-int specplus3_disk_write( specplus3_drive_number which, const char *filename );
-int specplus3_disk_writeprotect( specplus3_drive_number which, int wp );
+fdd_t *specplus3_get_fdd( specplus3_drive_number which );
 
 #endif			/* #ifndef FUSE_SPECPLUS3_H */

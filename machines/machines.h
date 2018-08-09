@@ -1,8 +1,6 @@
 /* machines.h: machine specific routines
    Copyright (c) 1999-2004 Philip Kendall
 
-   $Id: machines.h 3341 2007-11-26 14:48:01Z zubzero $
-
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or
@@ -36,6 +34,7 @@ int pentagon512_init( fuse_machine_info *machine );
 int pentagon1024_init( fuse_machine_info *machine );
 
 int spec16_init( fuse_machine_info *machine );
+int spec48_ntsc_init( fuse_machine_info *machine );
 int spec_se_init( fuse_machine_info *machine );
 int specplus2_init( fuse_machine_info *machine );
 int specplus2a_init( fuse_machine_info *machine );

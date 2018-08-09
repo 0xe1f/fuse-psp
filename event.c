@@ -1,7 +1,5 @@
 /* event.c: Routines needed for dealing with the event list
-   Copyright (c) 2000-2008 Philip Kendall
-
-   $Id: event.c 3942 2009-01-10 14:18:46Z pak21 $
+   Copyright (c) 2000-2015 Philip Kendall
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -30,7 +28,10 @@
 #include <libspectrum.h>
 
 #include "event.h"
+#include "infrastructure/startup_manager.h"
+#include "fuse.h"
 #include "ui/ui.h"
+#include "utils.h"
 
 /* A large value to mean `no events due' */
 static const libspectrum_dword event_no_events = 0xffffffff;
@@ -52,26 +53,17 @@ typedef struct event_descriptor_t {
   char *description;
 } event_descriptor_t; 
 
-typedef struct event_typeuser_t {
-  int type;
-  gpointer data;
-} event_typeuser_t;
-
 static GArray *registered_events;
 
-int
-event_init( void )
+static int
+event_init( void *context )
 {
   registered_events = g_array_new( FALSE, FALSE, sizeof( event_descriptor_t ) );
-  if( !registered_events ) {
-    ui_error( UI_ERROR_ERROR, "out of memory at %s:%d\n", __FILE__, __LINE__ );
-    return 1;
-  }
 
   event_type_null = event_register( NULL, "[Deleted event]" );
-  if( event_type_null == -1 ) return 1;
 
   event_next_event = event_no_events;
+
   return 0;
 }
 
@@ -81,11 +73,7 @@ event_register( event_fn_t fn, const char *description )
   event_descriptor_t descriptor;
 
   descriptor.fn = fn;
-  descriptor.description = strdup( description );
-  if( !descriptor.description ) {
-    ui_error( UI_ERROR_ERROR, "out of memory at %s:%d\n", __FILE__, __LINE__ );
-    return -1;
-  }
+  descriptor.description = utils_safe_strdup( description );
 
   g_array_append_val( registered_events, descriptor );
 
@@ -102,7 +90,7 @@ event_add_cmp( gconstpointer a1, gconstpointer b1 )
 }
 
 /* Add an event at the correct place in the event list */
-int
+void
 event_add_with_data( libspectrum_dword event_time, int type, void *user_data )
 {
   event_t *ptr;
@@ -111,8 +99,7 @@ event_add_with_data( libspectrum_dword event_time, int type, void *user_data )
     ptr = event_free;
     event_free = NULL;
   } else {
-    ptr = malloc( sizeof( *ptr ) );
-    if( !ptr ) return 1;
+    ptr = libspectrum_new( event_t, 1 );
   }
 
   ptr->tstates = event_time;
@@ -125,8 +112,6 @@ event_add_with_data( libspectrum_dword event_time, int type, void *user_data )
   } else {
     event_list = g_slist_insert_sorted( event_list, ptr, event_add_cmp );
   }
-
-  return 0;
 }
 
 /* Do all events which have passed */
@@ -136,8 +121,9 @@ event_do_events( void )
   event_t *ptr;
 
   while(event_next_event <= tstates) {
+    event_descriptor_t descriptor;
     ptr = event_list->data;
-    event_descriptor_t descriptor =
+    descriptor =
       g_array_index( registered_events, event_descriptor_t, ptr->type );
 
     /* Remove the event from the list *before* processing */
@@ -152,7 +138,7 @@ event_do_events( void )
     if( descriptor.fn ) descriptor.fn( ptr->tstates, ptr->type, ptr->user_data );
 
     if( event_free ) {
-      free( ptr );
+      libspectrum_free( ptr );
     } else {
       event_free = ptr;
     }
@@ -171,21 +157,19 @@ event_reduce_tstates( gpointer data, gpointer user_data )
 }
 
 /* Called at end of frame to reduce T-state count of all entries */
-int
+void
 event_frame( libspectrum_dword tstates_per_frame )
 {
   g_slist_foreach( event_list, event_reduce_tstates, &tstates_per_frame );
 
   event_next_event = event_list ?
     ((event_t*)(event_list->data))->tstates : event_no_events;
-
-  return 0;
 }
 
 /* Do all events that would happen between the current time and when
    the next interrupt will occur; called only when RZX playback is in
    effect */
-int
+void
 event_force_events( void )
 {
   while( event_next_event < machine_current->timings.tstates_per_frame ) {
@@ -197,8 +181,6 @@ event_force_events( void )
     event_do_events();
 
   }
-
-  return 0;
 }
 
 static void
@@ -211,44 +193,42 @@ set_event_null( gpointer data, gpointer user_data )
 }
 
 static void
-set_event_null_2( gpointer data, gpointer user_data )
+set_event_null_with_user_data( gpointer data, gpointer user_data )
 {
-  event_t *ptr = data;
-  event_typeuser_t *e = user_data;
+  event_t *event = data;
+  event_t *template = user_data;
 
-  if( ptr->type == e->type && ptr->user_data == e->data )
-    ptr->type = event_type_null;
+  if( event->type == template->type && event->user_data == template->user_data )
+    event->type = event_type_null;
 }
 
 /* Remove all events of a specific type from the stack */
-int
+void
 event_remove_type( int type )
 {
   g_slist_foreach( event_list, set_event_null, &type );
-  return 0;
 }
 
 /* Remove all events of a specific type and user data from the stack */
-int
+void
 event_remove_type_user_data( int type, gpointer user_data )
 {
-  event_typeuser_t e;
+  event_t template;
 
-  e.type = type;
-  e.data = user_data;
-  g_slist_foreach( event_list, set_event_null_2, &e );
-  return 0;
+  template.type = type;
+  template.user_data = user_data;
+  g_slist_foreach( event_list, set_event_null_with_user_data, &template );
 }
 
 /* Free the memory used by a specific entry */
 static void
 event_free_entry( gpointer data, gpointer user_data GCC_UNUSED )
 {
-  free( data );
+  libspectrum_free( data );
 }
 
 /* Clear the event stack */
-int
+void
 event_reset( void )
 {
   g_slist_foreach( event_list, event_free_entry, NULL );
@@ -257,18 +237,15 @@ event_reset( void )
 
   event_next_event = event_no_events;
 
-  free( event_free );
+  libspectrum_free( event_free );
   event_free = NULL;
-
-  return 0;
 }
 
 /* Call a user-supplied function for every event in the current list */
-int
+void
 event_foreach( GFunc function, gpointer user_data )
 {
   g_slist_foreach( event_list, function, user_data );
-  return 0;
 }
 
 /* A textual representation of each event type */
@@ -278,9 +255,36 @@ event_name( int type )
   return g_array_index( registered_events, event_descriptor_t, type ).description;
 }
 
+static void
+registered_events_free( void )
+{
+  int i;
+  event_descriptor_t descriptor;
+
+  if( !registered_events ) return;
+
+  for( i = 0; i < registered_events->len; i++ ) {
+    descriptor = g_array_index( registered_events, event_descriptor_t, i );
+    libspectrum_free( descriptor.description );
+  }
+
+  g_array_free( registered_events, TRUE );
+  registered_events = NULL;
+}
+
 /* Tidy-up function called at end of emulation */
-int
+static void
 event_end( void )
 {
-  return event_reset();
+  event_reset();
+  registered_events_free();
+}
+
+void
+event_register_startup( void )
+{
+  startup_manager_module dependencies[] = { STARTUP_MANAGER_MODULE_SETUID };
+  startup_manager_register( STARTUP_MANAGER_MODULE_EVENT, dependencies,
+                            ARRAY_SIZE( dependencies ), event_init, NULL,
+                            event_end );
 }

@@ -1,7 +1,6 @@
 /* tape.h: tape handling routines
-   Copyright (c) 1999-2004 Philip Kendall
-
-   $Id: tape.h 3714 2008-07-06 18:10:29Z fredm $
+   Copyright (c) 1999-2016 Philip Kendall
+   Copyright (c) 2015 Sergio Baldoví
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -28,7 +27,7 @@
 
 #include <libspectrum.h>
 
-int tape_init( void );
+void tape_register_startup( void );
 
 int tape_open( const char *filename, int autoload );
 
@@ -37,6 +36,7 @@ tape_read_buffer( unsigned char *buffer, size_t length, libspectrum_id_t type,
 		  const char *filename, int autoload );
 
 int tape_close( void );
+int tape_rewind( void );
 int tape_select_block( size_t n );
 int tape_select_block_no_update( size_t n );
 int tape_get_current_block( void );
@@ -50,14 +50,13 @@ int tape_save_trap( void );
 int tape_do_play( int autoplay );
 int tape_toggle_play( int autoplay );
 
-void tape_next_edge( libspectrum_dword last_tstates, int type,
-		     void *user_data );
+void tape_next_edge( libspectrum_dword last_tstates, int from_acceleration );
 
 int tape_stop( void );
 int tape_is_playing( void );
 int tape_present( void );
 
-int tape_record_start( void );
+void tape_record_start( void );
 int tape_record_stop( void );
 
 /* Call a user-supplied function for every block in the current tape */

@@ -1,8 +1,6 @@
 /* module.c: API for Fuse modules
    Copyright (c) 2007 Philip Kendall
 
-   $Id: module.c 3389 2007-12-03 12:54:17Z fredm $
-
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or
@@ -42,6 +40,13 @@ module_register( module_info_t *module )
   registered_modules = g_slist_append( registered_modules, module );
 
   return 0;
+}
+
+void
+module_end( void )
+{
+  g_slist_free( registered_modules );
+  registered_modules = NULL;
 }
 
 static void

@@ -1,3 +1,731 @@
+2018-08-06  Philip Kendall  <philip-fuse@shadowmagic.org.uk>
+
+        * Fuse 1.5.6 released.
+
+        * Emulation core improvements:
+          * Z80 flags register is now correct after SCF and CCF (Sergio
+            Baldoví).
+
+        * Miscellaneous improvements:
+          * Factor out common paths code between Linux and generic UNIX (Alberto
+            Garcia and Fredrick Meunier).
+          * More improvements disabling phantom typist after finishing loading
+            TAP or standard ROM TZX files (thanks, Alberto Garcia) (Fredrick
+            Meunier).
+          * Saving and loading binary data no longer increments tstate count
+            or triggers breakpoints (thanks, Sergio Baldoví) (Philip Kendall).
+          * "Variant" Alkatraz loaders (e.g. Gauntlet 3 and Shadow Dancer),
+            "Variant" Search Loader programs (e.g. Lotus Esprit Turbo
+            Challenge and Space Crusade) and Dinaload loaders (e.g. Astro Marine
+            Corps) are now accelerated (Philip Kendall).
+          * Stop RZX playback/recording on machine reset/change (Sergio
+            Baldoví).
+          * Various minor bugfixes.
+
+2018-07-01  Philip Kendall  <philip-fuse@shadowmagic.org.uk>
+
+        * Fuse 1.5.5 released.
+
+        * Emulation core improvements:
+          * Improve sound accuracy on Unix 64 bits systems (thanks, Fredrick
+            Meunier) (Sergio Baldoví).
+
+        * Miscellaneous improvements:
+          * Allow the use of real joystick hats/dpads in the SDL joystick code
+            (thanks, Sarah) (Fredrick Meunier).
+          * Rename compat_get_home_path() to compat_get_config_path() (Alberto
+            Garcia).
+          * Various minor bugfixes.
+
+2018-06-03  Philip Kendall  <philip-fuse@shadowmagic.org.uk>
+
+        * Fuse 1.5.4 released.
+
+        * Miscellaneous improvements:
+          * Add *.FMF as an allowed filetype to file selectors (Sergio Baldoví).
+          * Save SCR from current display file (thanks, Einar Saukas) (Fredrick
+            Meunier).
+          * Use 44.1KHz as default sound frequency (Fredrick Meunier).
+          * Various minor bugfixes.
+
+2018-04-29  Philip Kendall  <philip-fuse@shadowmagic.org.uk>
+
+        * Fuse 1.5.3 released.
+
+        * Emulation core improvements:
+          * Disable inactive peripherals after loading a snapshot (Sergio
+            Baldoví).
+
+        * Miscellaneous improvements:
+          * Distribute strcasecmp autoconf macro (Sergio Baldoví).
+          * Re-enable sound after phantom typist finishes loading TAP, standard
+            ROM TZX or +3 DSK images (thanks, Alberto Garcia) (Fredrick
+            Meunier).
+
+2018-03-27  Philip Kendall  <philip-fuse@shadowmagic.org.uk>
+
+        * Fuse 1.5.2 released.
+
+        * Emulation core improvements:
+          * Emulate ROM bug loading zero length blocks when using tape traps
+            (ub880d).
+
+        * Machine specific improvements:
+          * Fix the format of double-sided +3 disks (Sergio Baldoví).
+
+        * Miscellaneous improvements:
+          * Spectrum reset is accelerated when phantom typist is enabled and a
+            file is loaded from the menu (Fredrick Meunier).
+          * Add options UI for phantom typist (Fredrick Meunier).
+          * GTK+ 3 UI: Memory browser dialog allows to go to specific offset
+            (Sergio Baldoví).
+
+2018-02-25  Philip Kendall  <philip-fuse@shadowmagic.org.uk>
+
+        * Fuse 1.5.1 released.
+
+        * Debugger improvements:
+          * Prevent crash when we try to disassemble an instruction with many
+            DD or FD prefixes (Philip Kendall; thanks, Miguel Angel Rodríguez
+            Jódar).
+          * Fix crash when setting debugger variables (Gergely Szasz).
+
+        * Profiler improvements:
+          * Prevent crash when we try to profile an instruction with many DD
+            or FD prefixes (Philip Kendall; thanks, Sergio Baldoví).
+
+        * Miscellaneous improvements:
+          * GTK+ UI: Improve behaviour of default button on dialogs (thanks,
+            atom-atom) (ub880d and Sergio Baldoví).
+          * GTK+ and win32 UIs: Support hex numbers in load/save binary and
+            pokefinder dialogs (thanks, Allan Turvey) (Sergio Baldoví).
+          * SDL UI: Allow to select the video mode used in full-screen (Gergely
+            Szasz).
+
+2017-12-10  Philip Kendall  <philip-fuse@shadowmagic.org.uk>
+
+        * Fuse 1.5.0 released.
+
+        * Debugger improvements:
+          * Ensure conditional timed breakpoints work correctly (Philip
+            Kendall).
+
+        * Miscellaneous improvements:
+          * Autoload snapshots replaced by a "phantom typist" which types
+            LOAD "" or similar.
+          * Alkatraz loaders (e.g. Cobra and Fairlight) are now accelerated
+            (Philip Kendall).
+
+2017-10-10  Philip Kendall  <philip-fuse@shadowmagic.org.uk>
+
+        * Fuse 1.4.1 released.
+
+        * Emulation core improvements:
+          * Improvements to the loader acceleration code to reduce errors -
+            Blood Brothers, City Slicker, Driller, Dynamite Dan, Games
+            Compendium (by Gremlin), Joe Blade II, Kokotoni Wilf, Powerplay,
+            Saboteur, Trapdoor and Zanthrax now all load successfully (thanks,
+            windale and ub880d) (Philip Kendall).
+          * Multiface 3 returns values stored from ports 0x1ffd and 0x7ffd
+            (thanks, Fredrick Meunier) (Sergio Baldoví).
+          * Set contention for DivIDE/DivMMC EPROM memory and clear data to 1's
+            (Sergio Baldoví).
+
+        * Debugger improvements:
+          * Allow an exit code to be specified when using the "exit" command
+            (Philip Kendall).
+          * Add new "tape:microphone" and "spectrum:frames" system variables to
+            allow access to the current tape level and frame count since reset
+            (Philip Kendall).
+
+        * Deprecated features removed:
+          * All Z80 variables in the debugger must now be referenced as
+            "z80:NAME" rather than just "NAME" e.g. "set z80:af 0x1234"
+            rather than just "set af 0x1234" (Philip Kendall).
+
+        * Miscellaneous improvements:
+          * Support XCode 9 SDK in CoreAudio driver (Fredrick Meunier).
+          * Correct enabling of ide slave menu item (Fredrick Meunier).
+          * Add *.mlt as an allowed filetype to file selectors (thanks,
+            jonesypeter) (Fredrick Meunier).
+          * Add null UI for use in automation tests (Philip Kendall).
+          * Ensure null UI is not overridden by GTK+ UI (Sergio Baldoví).
+          * Fix detection of libspectrum capabilities (Sergio Baldoví).
+          * Remove C11 typedef redefinition of divxxx_t (Fredrick Meunier).
+
+2017-09-03  Philip Kendall  <philip-fuse@shadowmagic.org.uk>
+
+        * Fuse 1.4.0 released.
+
+        * New features:
+          * Add DivMMC emulation (Philip Kendall and Sergio Baldoví).
+          * Add ZXMMC emulation (Philip Kendall and Sergio Baldoví).
+
+        * Miscellaneous improvements:
+          * Add support for MLT format screenshots (Fredrick Meunier).
+
+2017-07-31  Philip Kendall  <philip-fuse@shadowmagic.org.uk>
+
+        * Fuse 1.3.8 released.
+
+        * Emulation core improvements:
+          * Add workaround for Multiface One and 128 clash (thanks, Fredrick
+            Meunier) (Sergio Baldoví).
+          * Limit RZX sentinel warning to once per playback (Sergio Baldoví).
+          * Disable Melodik interface on 128K machines (Sergio Baldoví).
+          * Correct the list of machines for Multiface One (Fredrick Meunier).
+
+        * Miscellaneous improvements:
+          * Update compile instructions for win32 UI (Sergio Baldoví).
+          * Check required version of libspectrum is available (Fredrick
+            Meunier).
+          * Document --mdr-len and --mdr-random-len options (thanks, Philip
+            Kendall and Gergely Szasz) (Sergio Baldoví).
+          * Document support for the Recreated ZX Spectrum (Sergio Baldoví).
+          * Fix transposed description of AY-3-8912 (Sergio Baldoví).
+          * GTK UI: Destroy tape browser dialog on close (thanks, Alberto
+            Garcia) (Sergio Baldoví).
+
+2017-07-02  Philip Kendall  <philip-fuse@shadowmagic.org.uk>
+
+        * Fuse 1.3.7 released.
+
+        * New features:
+          * Add Multiface One/128/3 interface emulation (Gergely Szasz and
+            Sergio Baldoví).
+
+        * Machine specific improvements:
+          * Restore +2A/+3 ALL_RAM mode from snapshots (Sergio Baldoví).
+
+        * Miscellaneous improvements:
+          * SDL: Hide cursor when UI runs on a console (Raspberry Pi) (Sergio
+            Baldoví).
+          * Switch to using autoreconf (Fredrick Meunier).
+          * Use silent builds by default when available (Fredrick Meunier).
+          * Use explicit AM_SILENT_RULES macro as libspectrum does (Sergio
+            Baldoví).
+          * AC_PROG_RANLIB is rendered obsolete by LT_INIT (Sergio Baldoví).
+          * Remove unnecessary include glib.h (Sergio Baldoví).
+
+2017-06-01  Philip Kendall  <philip-fuse@shadowmagic.org.uk>
+
+        * Fuse 1.3.6 released.
+
+        * Emulation core improvements:
+          * Add Covox interface emulation (Fredrick Meunier).
+          * Disable accelerate loader while recording RZX files (thanks,
+            windale) (Sergio Baldoví).
+
+        * Miscellaneous improvements:
+          * Fix typo in Opus Discovery option (thanks, Stuart) (Sergio Baldoví).
+          * WidgetUI: Disable RollbackTo menu option for widget UIs (thanks,
+            Ian) (Sergio Baldoví).
+          * Update description of speed option (Sergio Baldoví).
+          * List Melodik as supported interface and rearrange audio interfaces
+            as a separate item (Sergio Baldoví).
+          * Document --volume-covox option and update bash completion
+            (Sergio Baldoví).
+
+2017-04-28  Philip Kendall  <philip-fuse@shadowmagic.org.uk>
+
+        * Fuse 1.3.5 released.
+
+        * Emulation core improvements:
+          * Disable tape traps when playing/recording RZX files (thanks,
+            windale) (Sergio Baldoví).
+
+        * Miscellaneous improvements:
+          * Fix typo in LOG disk format (Sergio Baldoví).
+          * Replace old ticket numbers from Trac to Allura (Sergio Baldoví).
+          * WidgetUI: Fix memory leak in file selector (thanks, clang) (Sergio
+            Baldoví).
+          * Fix allocator sizeof operand mismatch and remove dead assignment
+            (Sergio Baldoví).
+          * Remove prototypes of old plus3 disk functions (thanks, Andre
+            Leiradella) (Sergio Baldoví).
+          * Increase allocated memory to keep GCC7 happy (Sergio Baldoví).
+
+2017-03-07  Philip Kendall  <philip-fuse@shadowmagic.org.uk>
+
+        * Fuse 1.3.4 released.
+
+        * Debugger improvements:
+          * Fix syntax for "breakpoint read" debugger command (thanks, Andy
+            Chadbourne) (Sergio Baldoví).
+
+        * Miscellaneous improvements:
+          * Fix Z80 unit test 39 to test the right opcode (thanks, Gareth Adams)
+            (Philip Kendall).
+          * Win32: Fix joystick initialisation (thanks, Matthias and Алексей)
+            (Sergio Baldoví).
+          * Use power-of-2 sound buffers on FreeBSD (thanks, Rene Ladan)
+            (Fredrick Meunier).
+
+2017-01-31  Philip Kendall  <philip-fuse@shadowmagic.org.uk>
+
+        * Fuse 1.3.3 released.
+
+        * Emulation core improvements:
+          * Add support for the hidden MEMPTR register (thanks, Boo-boo,
+            Vladimir Kladov and the members of the "Z80 Assembly Programming On
+            The ZX Spectrum" Facebook group) (Philip Kendall).
+          * Mark new disks as needing to be saved (Gergely Szasz).
+          * Show more information on disk modification status in menus (Gergely
+            Szasz).
+
+        * Miscellaneous improvements:
+          * Remove duplicated insert/eject code from DivIDE, Simple IDE and
+            ZXATASP interfaces (Philip Kendall).
+          * Improve IDE interface master/slave initialisation code (Philip
+            Kendall).
+          * Fix multiple save of disks (Gergely Szasz).
+          * Allow overwriting disk images (Gergely Szasz).
+          * Various minor bugfixes.
+
+2016-12-05  Philip Kendall  <philip-fuse@shadowmagic.org.uk>
+
+        * Fuse 1.3.2 released.
+
+        * Emulation core improvements:
+          * Allow keyboard arrow keys to be used as a cursor joystick (thanks,
+            solaris104) (Fredrick Meunier)
+          * Limit sound generation to less than 500% speed (thanks, windale and
+            Sergio Baldoví) (Fredrick Meunier).
+
+        * Miscellaneous improvements:
+          * WidgetUI: Fix order of Z80 flags in debugger (thanks, Marcos
+            Cruz) (Sergio Baldoví).
+          * Win32: Limit sound generation from 50% to 300% to work around bugs
+            in the DirectSound driver (thanks, windale and Lee Tonks) (Fredrick
+            Meunier).
+          * Various minor bugfixes.
+
+2016-11-05  Philip Kendall  <philip-fuse@shadowmagic.org.uk>
+
+        * Fuse 1.3.1 released.
+
+        * Emulation core improvements:
+          * Warn on inserting large disk image (thanks, Stefano Bodrato)
+            (Fredrick Meunier)
+
+        * Miscellaneous improvements:
+          * Win32: Re-enable standard output for Windows builds (Sergio
+            Baldoví).
+          * Win32: Minimum supported OS is now Windows 2000 (Sergio Baldoví).
+          * Various minor bugfixes.
+
+2016-10-02  Philip Kendall  <philip-fuse@shadowmagic.org.uk>
+
+        * Fuse 1.3.0 released.
+
+        * New features:
+          * Recreated ZX Spectrum Bluetooth keyboard support (thanks, thrice,
+            Philip Kendall and Sergio Baldoví) (Ekkehard Morgenstern).
+
+        * Emulation core improvements:
+          * Reset machine when auto-loading TRD/SCL disks (thanks, BogDan Vatra
+            and Fredrick Meunier) (Sergio Baldoví).
+
+        * Machine specific improvements:
+          * Update +3e ROMs to v1.43 (Sergio Baldoví; thanks, Garry Lancaster).
+
+        * Miscellaneous improvements:
+          * WidgetUI: Add About Fuse dialog with less cluttered text (Sergio
+            Baldoví).
+          * Print summary of enabled features when building Fuse (Alberto
+            Garcia).
+          * Various minor bugfixes.
+
+2016-08-21  Philip Kendall  <philip-fuse@shadowmagic.org.uk>
+
+        * Fuse 1.2.2 released.
+
+        * New features:
+          * Support loading first tape, snapshot, dock cartridge or RZX file
+            found inside .zip files (Patrik Rak and Sergio Baldoví).
+          * Support auto-booting TR-DOS disk images without a boot file (thanks,
+            windale, BogDan Vatra and Fredrick Meunier) (Sergio Baldoví).
+
+        * Emulation core improvements:
+          * Change microphone state when 0 tstate pulses do not have the no edge
+            flag set (Fredrick Meunier).
+
+        * Machine specific improvements:
+          * Fix +3 disk autoload (thanks, windale and BogDan Vatra) (Sergio
+            Baldoví and Fredrick Meunier).
+          * Fix floppy drive selection when resetting a +3 (thanks, windale and
+            BogDan Vatra) (Sergio Baldoví).
+
+        * Miscellaneous improvements:
+          * WidgetUI: Use description for tape blocks where available (Fredrick
+            Meunier).
+          * Use pkg-config to detect libpng and libxml2 (Alberto Garcia).
+          * Various minor bugfixes.
+
+2016-07-17  Philip Kendall  <philip-fuse@shadowmagic.org.uk>
+
+        * Fuse 1.2.1 released.
+
+        * Emulation core improvements:
+          * Fix bugs when the detect loaders feature is being used (thanks, Lee
+            Tonks and windale) (Fredrick Meunier).
+
+        * Debugger improvements:
+          * Remove the need for "%" when accessing system variables (Philip
+            Kendall).
+          * Add Z80 registers as debugger variables (Philip Kendall).
+          * Expose last byte written to the ULA, tstates since interrupt,
+            primary and secondary memory control ports as debugger system
+            variables (Philip Kendall).
+          * Make breakpoints on events honour lifetime (Sergio Baldoví).
+          * Extend breakpoints on paging events to more peripherals: Beta 128,
+            +D, Didaktik 80, DISCiPLE, Opus Discovery and SpeccyBoot (Sergio
+            Baldoví).
+          * Split +D memory sources into RAM and ROM sections (Sergio Baldoví).
+          * Coalesce +D and DISCiPLE RAM pages so they show as 8K pages (Sergio
+            Baldoví).
+
+        * Miscellaneous improvements:
+          * Update GNOME .desktop file (Alberto Garcia).
+          * Add an emulator module startup manager to automatically handle
+            dependency issues (Philip Kendall).
+          * Fix crash on widget UIs when hitting the close icon on the title bar
+            several times (Sergio Baldoví).
+
+2016-06-06  Philip Kendall  <philip-fuse@shadowmagic.org.uk>
+
+        * Fuse 1.2.0 released.
+
+        * New features:
+          * Add Currah µSource emulation (Stuart Brady).
+          * Add Didaktik 80/40 emulation (Gergely Szasz).
+          * Capture BASIC video functions to SVG file (Stefano Bodrato).
+          * Support bash completion (Sergio Baldoví).
+
+        * Emulation core improvements:
+          * Allow continuing RZX recordings if there is a final snapshot in the
+            RZX (Sergio Baldoví).
+          * Fix the prune function on RZX rollback (Sergio Baldoví).
+          * Use SZX format for the initial snapshot in RZX files (Sergio
+            Baldoví).
+          * Fix loading of EDSK files with Sector Offset block (Sergio Baldoví).
+          * Migrate disk "index event" handling to the FDD layer and have the
+            FDC layer use it for their STATUS registers (Gergely Szasz).
+          * Implement WD2797 emulation (Gergely Szasz).
+          * Centralise the "Disk icon" update code to the FDD layer (Gergely
+            Szasz).
+          * Fix disk image corruption after saving UDI files (Sergio Baldoví).
+          * Check ready status after loading a disk into floppy disk drive
+            (thanks, John Elliott) (Sergio Baldoví).
+          * Fix overlapped SEEK commands (Sergio Baldoví).
+          * Fix length of data returned by READ_DIAG (thanks, Fredrick Meunier)
+            (Sergio Baldoví).
+          * Fix writing .td0 format disk files (Sergio Baldoví).
+          * Fix speech in Cobra's Arc - Medium Case.tzx when loaded with tape
+            traps enabled (thanks, zx81 and Sergio Baldoví) (Fredrick Meunier).
+          * Skip tape traps if VERIFY is requested (UB880D).
+          * Fix loading sound with some custom loaders (Fredrick Meunier).
+          * Check if data blocks are headers for handling PZX files (Fredrick
+            Meunier).
+          * Correct display of pulses in PZX pulse block for tape browser
+            (Fredrick Meunier).
+          * Set AF, AF' and SP to 0xffff on reset (Stuart Brady).
+          * Leave most registers unchanged on a soft reset (Stuart Brady).
+          * Emulate interrupt and NMI timings more precisely (Stuart Brady).
+          * Emulate NMOS and CMOS Z80 variants (Stuart Brady).
+          * Switch to 2KB page size (Stuart Brady).
+          * Fix inaccurate output when AY envelopes are used (Matthew Westcott
+            and Fredrick Meunier).
+          * Fix some peripherals activation when loading snapshots (Sergio
+            Baldoví).
+
+        * Machine specific improvements:
+          * The address range 0x4000 - 0x7FFF is contended on the TS2068 in the
+            home, Dock and Exrom banks (thanks, Richard Atkinson). It is assumed
+            that this is the same for other Timex models (Fredrick Meunier).
+          * Clear all Opus RAM on hard reset (Stuart Brady).
+          * Ensure the ZX Printer does not require a hard reset to enable
+            (thanks, RMartins) (Fredrick Meunier).
+          * Fix timing of events when emulating Scorpion (Stuart Brady).
+          * Ensure we have successfully selected a Pentagon or a Timex machine
+            before inserting their media (Fredrick Meunier).
+          * Prefer Scorpion to Pentagon when loading SCL/TRD disks for better
+            timing compatibility (thanks, windale) (Sergio Baldoví).
+          * Fix Beta 128 type II commands (thanks, windale and BogDan Vatra)
+            (Sergio Baldoví).
+          * Don't enable the Beta 128 interface when loading a snapshot on a
+            machine with Beta built-in (thanks, windale and BogDan Vatra)
+            (Fredrick Meunier).
+          * Lock port +3 1FFDh if paging is disabled (Brian Ruthven and Fredrick
+            Meunier).
+          * Spectranet: fix segfault in error handling when setting SO_REUSEADDR
+            (Stuart Brady).
+          * Update SE ROMs to v4.07 (thanks, Andrew Owen) (Sergio Baldoví).
+
+        * Debugger improvements:
+          * Fix disassembly of LD (HL), LD (IX) and LD (IY) (BogDan Vatra).
+          * Add I and R register setting and getting to the debugger (Sergio
+            Baldoví).
+          * Show the status of the halted flag in the debugger (Stuart Brady).
+          * Fix time breakpoints later than a frame in the future (Sergio
+            Baldoví).
+          * Timex EXROM and Dock text was truncated in the debugger UI (thanks,
+            Andrew Owen and Sergio Baldoví) (Fredrick Meunier).
+          * Win32: relocate halted flag and set monospaced font (Sergio
+            Baldoví).
+          * Fix memory issues when removing a matched breakpoint (Tom Seddon).
+          * Signal the UI when the breakpoints list is changed (BogDan Vatra).
+          * Document IF token for conditional expressions in debugger section
+            (thanks, TK90XFan) (Sergio Baldoví).
+          * Fix documentation of address syntax used in debugger section
+            (Sergio Baldoví).
+          * Allow debugger to dereference memory locations (Philip Kendall).
+          * Allow strings with escaped spaces in the debugger (Sergio Baldoví).
+          * Make wildcard event breakpoints work (thanks, Sergio Baldoví)
+            (Philip Kendall).
+          * Protect divide expression from a divide by zero exception (Fredrick
+            Meunier).
+
+        * Miscellaneous improvements:
+          * Remove warnings in aosound (Rene Ladan).
+          * Fix save tape traps with SE ROM (Andrew Owen and Fredrick Meunier).
+          * Don't ignore the return code from setuid() (Sergio Baldoví).
+          * Fix condition used in --with-desktop-dir option (thanks, wiz)
+            (Sergio Baldoví).
+          * Fix uninitialised keyboard button settings in GTK UI (UB880D).
+          * Fix pause when minimising Fuse on Windows (Sergio Baldoví).
+          * Generic FDD UI handling cleanup (Alex Badea).
+          * Remove unused macros on disk peripherals (Sergio Baldoví).
+          * Fix bad prototypes for activate signal on GTK UI (Sergio Baldoví).
+          * Ensure exiting on GTK UI when there are active breakpoints (Sergio
+            Baldoví).
+          * Improve scrolling of disassembly list on Win32 UI (Sergio Baldoví).
+          * Make mousewheel scrolling on memory browser GTK+ 3.4 compatible and
+            keep the selected row (Sergio Baldoví).
+          * Ignore unused-but-set-variable warnings for option dialogs on Win32
+            UI (Sergio Baldoví).
+          * Link to autoload snapshot for NTSC Spectrum (Sergio Baldoví).
+          * Fix desktop integration rules to cope with VPATH builds (Sergio
+            Baldoví).
+          * Modernise autoconf support (Sergio Baldoví).
+          * Use unzipped tapes for peripheral tests (thanks, Phil Reynolds)
+            (Sergio Baldoví).
+          * Fix empty list in pokefinder on GTK+ 3 (Sergio Baldoví).
+          * Prefer GTK+ 3 to GTK+ 2 (Sergio Baldoví).
+          * Abort start if we can't drop root privileges (Fredrick Meunier).
+          * Use real GLib if and only if libspectrum does and make GTK+ UI
+            depend on real GLib (Stuart Brady).
+          * Split tape/Microdrive options into a new Media Options dialogue
+            (Stuart Brady).
+          * Fix memory leak in joystick UI (Sergio Baldoví).
+          * Don't show an error when rewinding an empty tape (Sergio Baldoví).
+          * GTK UI: clear out row mark in tape browser when selecting another
+            block (Sergio Baldoví).
+          * Add missing const qualifiers and casts (Stuart Brady and Sergio
+            Baldoví).
+          * Split Select ROMs menu into Machines and Peripherals (Gergely
+            Szasz).
+          * Only try to load the fallback ROM if it is different to the standard
+            one (Fredrick Meunier).
+          * Use PATH_MAX instead of FILENAME_MAX as our standard compatibility
+            define (thanks, Brian Ruthven) (Fredrick Meunier).
+          * WidgetUI: Fix build on Solaris (thanks, Brian Ruthven) (Fredrick
+            Meunier).
+          * Fix C89 compilation (Adrien Destugues).
+          * Standardise the number of joystick buttons across UIs (UB880D).
+          * Add static to functions where appropriate (Stuart Brady).
+          * Track port attachment for each data bus line (Stuart Brady).
+          * Switch to using non-recursive makefile (thanks, Stuart Brady)
+            (Sergio Baldoví).
+          * Move Windows resources that are UI-independent to data/win32
+            (Sergio Baldoví).
+          * Fix segfault due to inconsistent SETUP_CHECK() and CHECK() ordering
+            (UB880D; thanks, Guesser).
+          * Rename 'Interface I' to 'Interface 1' (thanks, Stuart Brady) (Sergio
+            Baldoví).
+          * Win32: fix compilation with mingwrt 4.0+ (Kirben).
+          * Replace various deprecated GTK+ functions: gtk_widget_modify_font,
+            GtkStock, gtk_tree_view_set_rules_hint(),
+            deprecated gdk_cursor_new() (Sergio Baldoví).
+          * Remove obsolete gtk_window_set_wmclass (Sergio Baldoví).
+          * Update URLs in documentation (Sergio Baldoví).
+          * Win32 UI: fix compilation with MinGW-w64 toolchain (lordhoto).
+          * Fix the build of SDL UI on Windows (Sergio Baldoví).
+          * Use compat_file_exists() instead of stat() in read_config_file() and
+            utils_find_file_path() (BogDan Vatra).
+          * Fix fdd_strerror() reading past the end of the fdd_error array
+            (BogDan Vatra).
+          * Use tape traps if we are using a custom ROM if the instructions at
+            the entry points have been preserved (thanks, Alberto Garcia)
+            (Fredrick Meunier).
+          * GTK+ and Win32 UI: add file filters in open/save dialogs (thanks,
+            Crisis) (Sergio Baldoví).
+          * Don't show hidden files/directories in the file selector on Widget
+            UIs (Sergio Baldoví).
+          * Remember filename when saving a recently formatted disk (Sergio
+            Baldoví).
+          * GTK UI: Change the resizing method for GTK+ UI for better
+            compatibility with GTK+ 3.20+ (thanks, Alberto Garcia) (Sergio
+            Baldoví).
+
+2013-05-24  Philip Kendall  <philip-fuse@shadowmagic.org.uk>
+
+        * Fuse 1.1.1 released.
+
+        * Distribute PORTING,hacking/valgrind.supp,sound/wiisound.c,
+          tests/success.{mgt.bz2,opd} and ui/wii/wiimouse.h (Stuart Brady).
+        * Add ChangeLog entries for 1.0.0.1 and 1.0.0.1a (Fredrick Meunier).
+        * Release correct version of source files.
+
+2013-05-19  Philip Kendall  <philip-fuse@shadowmagic.org.uk>
+
+        * Fuse 1.1.0 released.
+
+        * Remove ROMs that there is no formal permission to distribute.
+
+        * New features:
+          * Add Spectranet ethernet interface emulation (Philip Kendall).
+          * Add SpeccyBoot ethernet interface emulation (Patrik Persson).
+          * Add SpecDrum sound interface emulation (Jon Mitchell).
+          * Add DISCiPLE disk interface emulation (Stuart Brady).
+            Sinclair Network emulation is not provided, and the interface is
+            not available under 128K emulation in this release.
+          * Support reading PZX files (Fredrick Meunier).
+          * Add support for POK files (Sergio Baldoví).
+          * Add recording of movies to FMF files (Gergely Szasz).
+          * Add GTK+ 3 compatibility (Sergio Baldoví).
+
+        * Emulation core improvements:
+          * Add support for ABC AY stereo (Stuart Brady).
+          * Correct feedback in AY noise generator (Patrik Rak).
+          * MIC bit only isn't enough to drive the speaker (Fredrick Meunier).
+          * Mirror Interface 1 ROM to the second 8Kb of ROM as in the real
+            interface (Fredrick Meunier, with thanks to mcleod_ideafix and
+            zx81).
+          * Support the Beta interface setting to not auto-boot the interface
+            on 48K machines (ketmar).
+
+        * Machine specific improvements:
+          * Read and write all potential 1024k worth of memory pages from a
+            snap (ketmar and Fredrick Meunier).
+          * Initialise the Pentagon 1024k memory ports from a snapshot (ketmar
+            and Fredrick Meunier).
+          * Restore the paged state of the Beta ROM when loading Pentagon
+            128k/512k/1024k snapshots (ketmar and Fredrick Meunier).
+
+        * Debugger improvements:
+          * Disassemble ED 4D as RETI (Simon Owen).
+          * Add IM, IFF1 and IFF2 setting and getting to the debugger (Alex
+            Badea).
+
+        * Miscellaneous improvements:
+          * Many improvements to Win32 UI and installer (Sergio Baldoví).
+          * Allow the use of the SDL joystick code in the GTK+ and Xlib UIs
+            (Sergio Baldoví).
+          * Add current machine name to GTK+ and Win32 statusbars (Sergio
+            Baldoví).
+          * Allow the drag and drop of files from KDE (Dolphin/Konqueror)
+            (Sergio Baldoví, with thanks to Diondeville).
+          * Add a statusbar for the xlib UI (Gergely Szasz).
+          * Extend supported symbol characters on SDL and xlib UIs (Sergio
+            Baldoví).
+          * Support for the TZX set signal level block (Fredrick Meunier).
+          * Drop support for GLib and GTK+ version 1.x (Alberto Garcia and
+            Sergio Baldoví).
+          * Support setting late timings from snapshots (Fredrick Meunier).
+
+        * Various other minor bugfixes.
+
+2011-04-01  Philip Kendall  <philip-fuse@shadowmagic.org.uk>
+
+        * Fuse 1.0.0.1a released.
+
+        * Remove all ROMs for which there isn't explicit permission to
+          distribute (Philip Kendall).
+
+2011-01-12  Philip Kendall  <philip-fuse@shadowmagic.org.uk>
+
+        * Fuse 1.0.0.1 released.
+
+        * Fix temporary breakpoints on platforms using replacement Glib
+          (Fredrick Meunier, Sergio Baldovi; thanks, Chris Cowley)
+        * Ensure Amiga port can load files (Chris Young)
+        * Fix SVGAlib compilation (rkd77)
+
+2010-12-16  Philip Kendall  <philip-fuse@shadowmagic.org.uk>
+
+        * Fuse 1.0.0 released.
+
+        * Add Opus Discovery disk interface support (Gergely Szasz and Fredrick
+          Meunier).
+        * Wii support (Bjoern Giesler, Philip Kendall, Marek Januszewski).
+        * Many improvements to Win32 UI, including an installer (Marek
+          Januszewski).
+        * Support weak data in +3 disk images (Gergely Szasz).
+        * NTSC Spectrum support (Philip Kendall, with thanks to Claudio
+          Bernet).
+        * Add support for flipping disk images in single sided drives (Gergely
+          Szasz).
+        * Add support for automatically merging both both disk images where
+          they are in separate files named with the text [Ss]ide[ _][abAB12]
+          (Gergely Szasz).
+        * Switch to using Blip_Buffer (by Shay Green) for improved beeper and
+          AY output (Fredrick Meunier).
+        * Allow beeper and AY volumes to be set (Fredrick Meunier).
+        * Enable Beta 128 interface in 48K and TC2048 machines (thanks,
+          Omikron) (Fredrick Meunier).
+        * Add emulation of the Fuller Audio Box (Stuart Brady and Fredrick
+          Meunier).
+        * Allow sound to run from 2% speed up (Fredrick Meunier).
+        * Add emulation of the Melodik and similar 48K-compatible AY interfaces
+          that use the 128K sound ports (Fredrick Meunier).
+        * Add support for Pentagon 1024SL v2.2 16 colour mode (Fredrick
+          Meunier).
+        * Implement GTK+ drag and drop support (Dmitry Semyonov).
+        * Better support for international keyboards (Michal Jurica).
+        * Allow svgalib UI to use full range of bit depths and scalers (Gergely
+          Szasz).
+        * Allow GTK+ scalers to set window size in GTK+ UI (rkd77, Fredrick
+          Meunier).
+        * Allow selection of "TV speaker" or "beeper"-style sound output
+          (Fredrick Meunier)
+        * Allow hot-key switching between full-screen and windowed mode in
+          SDL UI (György Szombathelyi).
+
+        * Miscellaneous improvements:
+          * Preformat new disks on +3 to allow the format command on +3 to work
+            (Gergely Szasz).
+          * Support non-standard TRD images with 41-83 tracks per side (Gergely
+            Szasz).
+          * Allow user to swap Kempston mouse buttons as some combinations of
+            physical hardware and Spectrum software make it hard to use the
+            standard mapping e.g. right clicking and moving the cursor on Mac
+            notebooks (thanks, Andrew Owen) (Fredrick Meunier).
+          * Fixes for speed estimation (Gergely Szasz).
+          * Fix border colour in Timex HiRes screenshots (Fredrick Meunier).
+          * Allow "combo" boxes in widget UI (Gergely Szasz).
+          * Allow Home and End keys to work in widget UI (Gergely Szasz).
+          * Fix poke finder passing the wrong page to the debugger (Marek
+            Januszewski).
+          * Ensure joystick code always activates fire buttons correctly
+            (thanks, anonymous user)
+          * Don't fire joystick fire button events unless they've actually
+            changed (Fredrick Meunier; thanks, Phil Reynolds).
+          * Make svgalib UI use event interface rather than polling (thanks,
+            anonymous user).
+          * Ensure empty XML elements can't cause a segfault (thanks,
+            anonymous user).
+          * Tweak sector padding to fix Opus ATC+Technician Ted.dsk (Gergely
+            Szasz; thanks, Simon Owen).
+          * Z80 NMI should take some time (Fredrick Meunier).
+          * Ensure netbooks always recognise the enter key (Fredrick Meunier;
+            thanks, Marce).
+          * Add a --without-png option to configure for Gentoo (José Manuel
+            Ferrer Ortiz)
+
+        * Many other things I forgot. If you contributed something and would
+          like to be mentioned here, please mail me.
+
 2009-01-14  Philip Kendall  <philip-fuse@shadowmagic.org.uk>
 
 	* Fuse 0.10.0.2 released
@@ -512,7 +1240,7 @@
 
 	* Graphics filters: essentially arbitrary filters which can be
 	  applied to the Spectrum's screen to give scanlines, smoothing
-	  and all sorts of other possiblities (mostly Fredrick Meunier
+	  and all sorts of other possibilities (mostly Fredrick Meunier
 	  and Philip Kendall; based on the same feature in ScummVM).
 
 	* Transparent monitor/debugger (Philip Kendall).
@@ -611,7 +1339,7 @@
 	* Put the keyboard help in a separate window when using the GTK+
 	  UI (Philip Kendall).
 
-	* Changable emulation speed (Philip Kendall).
+	* Changeable emulation speed (Philip Kendall).
 
 	* Change to lib765 0.3.0 for Mac OS X compatibility
 	  (Frederick Meunier).
@@ -960,5 +1688,3 @@
 1999-07-18  Philip Kendall  <pak@ast.cam.ac.uk>
 
 	* Version 0.1.0 released.
-
-$Id: ChangeLog 3957 2009-01-14 19:52:20Z pak21 $

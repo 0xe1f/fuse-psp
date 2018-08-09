@@ -1,7 +1,5 @@
 /* machine.h: Routines for handling the various machine types
-   Copyright (c) 1999-2008 Philip Kendall
-
-   $Id: machine.h 3573 2008-03-21 16:05:20Z pak21 $
+   Copyright (c) 1999-2011 Philip Kendall
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -30,9 +28,10 @@
 
 #include <libspectrum.h>
 
-#include "ay.h"
 #include "display.h"
-#include "memory.h"
+#include "peripherals/ay.h"
+#include "peripherals/covox.h"
+#include "peripherals/specdrum.h"
 #include "spectrum.h"
 
 typedef libspectrum_byte (*spectrum_unattached_port_fn)( void );
@@ -77,7 +76,11 @@ typedef struct fuse_machine_info {
 						  from a port which isn't
 						  attached to anything */
 
-  ayinfo ay;		/* The AY-8-3912 chip */
+  ayinfo ay;		/* The AY-3-8912 chip */
+
+  specdrum_info specdrum; /* SpecDrum settings */
+
+  covox_info covox; /* Covox settings */
 
   int (*shutdown)( void );
 
@@ -90,22 +93,19 @@ extern int machine_count;		/* of which there are this many */
 
 extern fuse_machine_info *machine_current;	/* The currently selected machine */
 
-int machine_init_machines( void );
+void machine_register_startup( void );
 
 int machine_select( libspectrum_machine type );
 int machine_select_id( const char *id );
 const char* machine_get_id( libspectrum_machine type );
 
-int machine_load_rom_bank_from_buffer( memory_page* bank_map, size_t which,
-                                       int page_num, unsigned char *buffer,
-                                       size_t length, int custom );
-int machine_load_rom_bank( memory_page* bank_map, size_t which, int page_num,
-                           const char *filename, const char *fallback,
-                           size_t expected_length );
-int machine_load_rom( size_t which, int page_num, const char *filename,
-                      const char *fallback, size_t expected_length );
+int machine_load_rom_bank_from_buffer( memory_page* bank_map, int page_num,
+  unsigned char *buffer, size_t length, int custom );
+int machine_load_rom_bank( memory_page* bank_map, int page_num,
+  const char *filename, const char *fallback, size_t expected_length );
+int machine_load_rom( int page_num, const char *filename, const char *fallback,
+  size_t expected_length );
 
 int machine_reset( int hard_reset );
-int machine_end( void );
 
 #endif			/* #ifndef FUSE_MACHINE_H */

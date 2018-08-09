@@ -1,7 +1,5 @@
 /* z80.h: z80 emulation core
-   Copyright (c) 1999-2003 Philip Kendall
-
-   $Id: z80.h 3681 2008-06-16 09:40:29Z pak21 $
+   Copyright (c) 1999-2015 Philip Kendall
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -46,8 +44,16 @@ typedef struct {
 			   so it can also act as an RZX instruction counter */
   libspectrum_byte r7;	/* The high bit of the R register */
   regpair sp,pc;
+  regpair memptr;	/* The hidden register */
+  int iff2_read;
   libspectrum_byte iff1, iff2, im;
   int halted;
+
+  /* Presumably, internal register where Z80 assembles the new content of the
+     F register, before moving it back to F. The behaviour is deterministic in
+     Zilog Z80 and nondeterministic in NEC Z80.
+     https://www.worldofspectrum.org/forums/discussion/41704/ */
+  libspectrum_byte q;
 
   /* Interrupts were enabled at this time; do not accept any interrupts
      until tstates > this value */
@@ -55,10 +61,12 @@ typedef struct {
 
 } processor;
 
-int z80_init( void );
+void z80_register_startup( void );
+int z80_init( void *context );
 void z80_reset( int hard_reset );
 
 int z80_interrupt( void );
+void z80_retn( void );
 
 void z80_do_opcodes(void);
 
@@ -73,6 +81,8 @@ extern libspectrum_byte sz53_table[];
 extern libspectrum_byte sz53p_table[];
 extern libspectrum_byte parity_table[];
 
-extern int z80_interrupt_event, z80_nmi_event;
+extern int z80_interrupt_event;
+extern int z80_nmi_event;
+extern int z80_nmos_iff2_event;
 
 #endif			/* #ifndef FUSE_Z80_H */

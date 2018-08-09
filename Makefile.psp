@@ -16,33 +16,53 @@ EXTRA_TARGETS=EBOOT.PBP
 PSP_EBOOT_TITLE=$(PSP_APP_NAME) $(PSP_APP_VER)
 PSP_EBOOT_ICON=ui/psp/fuse-icon.png
 
+# peripherals/multiface.o
+# peripherals/nic/enc28j60.o peripherals/nic/w5100.o peripherals/nic/socket.o
 BUILD_FUSE=debugger/breakpoint.o debugger/command.o debugger/commandl.o \
            debugger/commandy.o debugger/debugger.o debugger/disassemble.o \
            debugger/expression.o debugger/event.o debugger/variable.o \
+           infrastructure/startup_manager.o \
+           peripherals/ay.o peripherals/covox.o peripherals/dck.o \
+           peripherals/fuller.o peripherals/if1.o peripherals/if2.o \
+           peripherals/joystick.o peripherals/kempmouse.o peripherals/melodik.o \
+           peripherals/printer.o peripherals/scld.o \
+           peripherals/speccyboot.o peripherals/specdrum.o \
+           peripherals/spectranet.o peripherals/ula.o peripherals/usource.o \
+           peripherals/ide/divide.o peripherals/ide/divmmc.o \
+           peripherals/ide/divxxx.o peripherals/ide/ide.o \
+           peripherals/ide/simpleide.o peripherals/ide/zxatasp.o \
+           peripherals/ide/zxcf.o peripherals/ide/zxmmc.o \
+           peripherals/flash/am29f010.o \
+           peripherals/disk/beta.o peripherals/disk/crc.o \
+           peripherals/disk/didaktik.o peripherals/disk/disciple.o \
+           peripherals/disk/disk.o peripherals/disk/fdd.o peripherals/disk/opus.o \
+           peripherals/disk/plusd.o peripherals/disk/trdos.o \
+           peripherals/disk/upd_fdc.o peripherals/disk/wd_fdc.o \
            z80/z80.o z80/z80_ops.o \
-           pokefinder/pokefinder.o \
+           pokefinder/pokefinder.o pokefinder/pokemem.o \
            unittests/unittests.o \
            machines/pentagon1024.o machines/pentagon512.o machines/pentagon.o \
+           machines/machines_periph.o \
            machines/scorpion.o machines/spec128.o machines/spec16.o \
-           machines/spec48.o machines/specplus2a.o machines/specplus2.o \
+           machines/spec48.o machines/spec48_ntsc.o \
+           machines/specplus2a.o machines/specplus2.o \
            machines/specplus3.o machines/specplus3e.o machines/spec_se.o \
            machines/tc2048.o machines/tc2068.o machines/ts2068.o \
-           disk/beta.o disk/crc.o disk/disk.o disk/fdd.o disk/plusd.o \
-           disk/wd_fdc.o disk/upd_fdc.o \
-           ay.o dck.o display.o divide.o ide.o if1.o \
-           if2.o input.o joystick.o kempmouse.o keyboard.o loader.o \
-           machine.o memory.o module.o periph.o printer.o profile.o \
-           psg.o scld.o screenshot.o settings.o simpleide.o slt.o \
-           snapshot.o sound.o ui.o uidisplay.o ula.o utils.o zxatasp.o \
-           zxcf.o timer/timer.o event.o rzx.o spectrum.o tape.o mempool.o \
-           fuse.o compat/dirname.o compat/psp/file.o \
-           ui/scaler/scaler.o ui/scaler/scalers16.o ui/scaler/scalers32.o \
-           sound/sfifo.o
+           display.o input.o keyboard.o loader.o \
+           machine.o memory_pages.o module.o movie.o periph.o phantom_typist.o \
+           profile.o psg.o screenshot.o settings.o slt.o \
+           snapshot.o sound.o ui.o uidisplay.o uimedia.o utils.o \
+           timer/timer.o event.o rzx.o spectrum.o svg.o tape.o mempool.o \
+           compat/dirname.o \
+           ui/scaler/scaler.o \
+           sound/sfifo.o sound/blipbuffer.o \
+           fuse.o
 BUILD_PORT=ui/psp/keysyms.o timer/psp.o ui/psp/paths.o ui/psp/osname.o \
            ui/psp/pspui.o ui/psp/pspdisplay.o ui/psp/debugger.o \
-           sound/pspsound.o ui/psp/pspjoystick.o
+           sound/pspsound.o ui/psp/pspjoystick.o \
+           compat/psp/file.o
 
-OBJS=$(BUILD_FUSE) $(BUILD_PORT)
+OBJS=$(BUILD_FUSE) #$(BUILD_PORT)
 
 DEFINES=-DFUSEDATADIR="\"system\"" -DSOUND_BUFFER_SIZE=368 \
         -DPATH_MAX=2048
@@ -69,3 +89,4 @@ clean_libs:
 	cd $(PSPLIB) ; $(MAKE) clean
 	cd $(LSP) ; $(MAKE) -f Makefile.psp clean
 	cd $(LMZ) ; $(MAKE) -f Makefile.psp clean
+

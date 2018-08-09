@@ -1,7 +1,5 @@
 /* mempool.c: pooled system memory
-   Copyright (c) 2008 Philip Kendall
-
-   $Id$
+   Copyright (c) 2008-2016 Philip Kendall
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -34,20 +32,17 @@
 #include <libspectrum.h>
 
 #include "fuse.h"
+#include "infrastructure/startup_manager.h"
 #include "mempool.h"
 
 static GArray *memory_pools;
 
 const int MEMPOOL_UNTRACKED = -1;
 
-int
-mempool_init( void )
+static int
+mempool_init( void *context )
 {
   memory_pools = g_array_new( FALSE, FALSE, sizeof( GArray* ) );
-  if( !memory_pools ) {
-    fprintf( stderr, "%s: error initialising memory pools\n", fuse_progname );
-    return 1;
-  }
 
   return 0;
 }
@@ -56,7 +51,6 @@ int
 mempool_register_pool( void )
 {
   GArray *pool = g_array_new( FALSE, FALSE, sizeof( void* ) );
-  if( !pool ) return -1;
 
   g_array_append_val( memory_pools, pool );
 
@@ -64,15 +58,32 @@ mempool_register_pool( void )
 }
 
 void*
-mempool_alloc( int pool, size_t size )
+mempool_malloc( int pool, size_t size )
 {
   void *ptr;
 
-  if( pool == MEMPOOL_UNTRACKED ) return malloc( size );
+  if( pool == MEMPOOL_UNTRACKED ) return libspectrum_malloc( size );
 
   if( pool < 0 || pool >= memory_pools->len ) return NULL;
 
-  ptr = malloc( size );
+  ptr = libspectrum_malloc( size );
+  if( !ptr ) return NULL;
+
+  g_array_append_val( g_array_index( memory_pools, GArray*, pool ), ptr );
+
+  return ptr;
+}
+
+void *
+mempool_malloc_n( int pool, size_t nmemb, size_t size )
+{
+  void *ptr;
+
+  if( pool == MEMPOOL_UNTRACKED ) return libspectrum_malloc_n( nmemb, size );
+
+  if( pool < 0 || pool >= memory_pools->len ) return NULL;
+
+  ptr = libspectrum_malloc_n( nmemb, size );
   if( !ptr ) return NULL;
 
   g_array_append_val( g_array_index( memory_pools, GArray*, pool ), ptr );
@@ -85,7 +96,7 @@ mempool_strdup( int pool, const char *string )
 {
   size_t length = strlen( string ) + 1;
 
-  char *ptr = mempool_alloc( pool, length );
+  char *ptr = mempool_malloc( pool, length );
   if( !ptr ) return NULL;
 
   memcpy( ptr, string, length );
@@ -100,9 +111,38 @@ mempool_free( int pool )
 
   GArray *p = g_array_index( memory_pools, GArray*, pool );
 
-  for( i = 0; i < p->len; i++ ) free( g_array_index( p, void*, i ) );
+  for( i = 0; i < p->len; i++ )
+    libspectrum_free( g_array_index( p, void*, i ) );
 
   g_array_set_size( p, 0 );
+}
+
+/* Tidy-up function called at end of emulation */
+static void
+mempool_end( void )
+{
+  int i;
+  GArray *pool;
+
+  if( !memory_pools ) return;
+
+  for( i = 0; i < memory_pools->len; i++ ) {
+    pool = g_array_index( memory_pools, GArray *, i );
+
+    g_array_free( pool, TRUE );
+  }
+
+  g_array_free( memory_pools, TRUE );
+  memory_pools = NULL;
+}
+
+void
+mempool_register_startup( void )
+{
+  startup_manager_module dependencies[] = { STARTUP_MANAGER_MODULE_SETUID };
+  startup_manager_register( STARTUP_MANAGER_MODULE_MEMPOOL, dependencies,
+                            ARRAY_SIZE( dependencies ), mempool_init, NULL,
+                            mempool_end );
 }
 
 /* Unit test helper routines */

@@ -1,7 +1,5 @@
 /* bitmap.h: Bitmap routines
-   Copyright (c) 2007 Stuart Brady
-
-   $Id: bitmap.h 3218 2007-10-21 23:25:23Z zubzero $
+   Copyright (c) 2007-2015 Stuart Brady
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -21,26 +19,26 @@
 
    Philip: philip-fuse@shadowmagic.org.uk
 
-   Stuart: sdbrady@ntlworld.com
+   Stuart: stuart.brady@gmail.com
 
 */
 
 #ifndef FUSE_BITMAP_H
 #define FUSE_BITMAP_H
 
-inline static void
+static inline void
 bitmap_set( libspectrum_byte *b, const size_t n )
 {
   b[ n / 8 ] |= ( 1 << ( n % 8 ) );
 }
 
-inline static void
+static inline void
 bitmap_reset( libspectrum_byte *b, const size_t n )
 {
   b[ n / 8 ] &= ~( 1 << ( n % 8 ) );
 }
 
-inline static int
+static inline int
 bitmap_test( const libspectrum_byte *b, const size_t n )
 {
   return b[ n / 8 ] & ( 1 << ( n % 8 ) );

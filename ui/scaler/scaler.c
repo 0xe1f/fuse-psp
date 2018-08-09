@@ -1,8 +1,7 @@
 /* scaler.c: code for selecting (etc) scalers
  * Copyright (C) 2003 Fredrick Meunier, Philip Kendall
+ * Copyright (c) 2015 Sergio Baldoví
  * 
- * $Id: scaler.c 3612 2008-05-02 12:56:05Z fredm $
- *
  * Originally taken from ScummVM - Scumm Interpreter
  * Copyright (C) 2001  Ludvig Strigeus
  * Copyright (C) 2001/2002 The ScummVM project
@@ -37,6 +36,7 @@
 #include "settings.h"
 #include "ui/ui.h"
 #include "ui/uidisplay.h"
+#include "utils.h"
 
 static int scaler_supported[ SCALER_NUM ] = {0};
 
@@ -130,13 +130,9 @@ scaler_select_scaler( scaler_type scaler )
 
   current_scaler = scaler;
 
-  if( settings_current.start_scaler_mode ) free( settings_current.start_scaler_mode );
+  if( settings_current.start_scaler_mode ) libspectrum_free( settings_current.start_scaler_mode );
   settings_current.start_scaler_mode =
-    strdup( available_scalers[current_scaler].id );
-  if( !settings_current.start_scaler_mode ) {
-    ui_error( UI_ERROR_ERROR, "out of memory at %s:%d", __FILE__, __LINE__ );
-    return 1;
-  }
+    utils_safe_strdup( available_scalers[current_scaler].id );
 
   scaler_proc16 = scaler_get_proc16( current_scaler );
   scaler_proc32 = scaler_get_proc32( current_scaler );

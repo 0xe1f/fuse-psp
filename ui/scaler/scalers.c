@@ -1,8 +1,6 @@
 /* scalers.c: the actual graphics scalers
- * Copyright (C) 2003-2008 Fredrick Meunier, Philip Kendall, Gergely Szasz
+ * Copyright (C) 2003-2015 Fredrick Meunier, Philip Kendall, Gergely Szasz
  *
- * $Id: scalers.c 3613 2008-05-10 15:10:40Z fredm $
- * 
  * Originally taken from ScummVM - Scumm Interpreter
  * Copyright (C) 2001  Ludvig Strigeus
  * Copyright (C) 2001-2003 The ScummVM project
@@ -695,7 +693,7 @@ FUNCTION( scaler_2xSaI )( const libspectrum_byte *srcPtr,
 
 	register libspectrum_dword colorA, colorB;
 	libspectrum_dword colorC, colorD, colorE, colorF, colorG, colorH,
-	  colorI, colorJ, colorK, colorL, colorM, colorN, colorO, colorP;
+	  colorI, colorJ, colorK, colorL, colorM, colorN, colorO;
 	libspectrum_dword product, product1, product2;
 
 /*---------------------------------------
@@ -703,6 +701,8 @@ FUNCTION( scaler_2xSaI )( const libspectrum_byte *srcPtr,
                                          G|A B|K
                                          H|C D|L
                                          M|N O|P
+
+   Note that P does not contribute to the algorithm
 */
 	colorI = *(bP - nextlineSrc - 1);
 	colorE = *(bP - nextlineSrc);
@@ -722,7 +722,6 @@ FUNCTION( scaler_2xSaI )( const libspectrum_byte *srcPtr,
 	colorM = *(bP + 2 * nextlineSrc - 1);
 	colorN = *(bP + 2 * nextlineSrc);
 	colorO = *(bP + 2 * nextlineSrc + 1);
-	colorP = *(bP + 2 * nextlineSrc + 2);
 
 	if ((colorA == colorD) && (colorB != colorC)) {
 	  if (((colorA == colorE) && (colorB == colorL)) ||
@@ -838,9 +837,9 @@ FUNCTION( scaler_AdvMame2x )( const libspectrum_byte *srcPtr,
   while (height--) {
     int i;
 
-    B = *(p - 1 - nextlineSrc);
+    /* B = *(p - 1 - nextlineSrc); */
     E = *(p - 1);
-    H = *(p - 1 + nextlineSrc);
+    /* H = *(p - 1 + nextlineSrc); */
     C = *(p - nextlineSrc);
     F = *(p);
     I = *(p + nextlineSrc);
@@ -882,9 +881,9 @@ FUNCTION( scaler_AdvMame3x )( const libspectrum_byte *srcPtr,
   while (height--) {
     int i;
 
-    B = *(p - 1 - nextlineSrc);
+    /* B = *(p - 1 - nextlineSrc); */
     E = *(p - 1);
-    H = *(p - 1 + nextlineSrc);
+    /* H = *(p - 1 + nextlineSrc); */
     C = *(p - nextlineSrc);
     F = *(p);
     I = *(p + nextlineSrc);
