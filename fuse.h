@@ -1,7 +1,5 @@
 /* fuse.h: Variables exported from the main file
-   Copyright (c) 2000-2003 Philip Kendall
-
-   $Id: fuse.h 2889 2007-05-26 17:45:08Z zubzero $
+   Copyright (c) 2000-2015 Philip Kendall
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -32,8 +30,7 @@
 
 #include "compat.h"
 
-extern char *fuse_progname;		/* argv[0] */
-extern char fuse_directory[ PATH_MAX ];	/* The directory we started in */
+extern const char *fuse_progname;	/* argv[0] */
 
 extern int fuse_exiting;		/* Shall we exit now? */
 
