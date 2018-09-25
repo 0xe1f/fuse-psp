@@ -29,3 +29,9 @@ ui_debugger_deactivate( int interruptable )
 {
   return 0;
 }
+
+void
+ui_breakpoints_updated( void )
+{
+  /* Do nothing */
+}

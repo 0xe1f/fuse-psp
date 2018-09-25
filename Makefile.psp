@@ -54,15 +54,17 @@ BUILD_FUSE=debugger/breakpoint.o debugger/command.o debugger/commandl.o \
            snapshot.o sound.o ui.o uidisplay.o uimedia.o utils.o \
            timer/timer.o event.o rzx.o spectrum.o svg.o tape.o mempool.o \
            compat/dirname.o \
-           ui/scaler/scaler.o \
            sound/sfifo.o sound/blipbuffer.o \
            fuse.o
-BUILD_PORT=ui/psp/keysyms.o timer/psp.o ui/psp/paths.o ui/psp/osname.o \
+#           ui/scaler/scaler.o ui/scaler/scaler_hq2x.c ui/scaler/scaler_hq3x.c ui/scaler/scalers.c \
+BUILD_PART=ui/psp/keysyms.o timer/psp.o ui/psp/paths.o ui/psp/osname.o \
            ui/psp/pspui.o ui/psp/pspdisplay.o ui/psp/debugger.o \
-           sound/pspsound.o ui/psp/pspjoystick.o \
+           sound/pspsound.o  \
            compat/psp/file.o
+BUILD_PORT=compat/psp/file.o ui/psp/pspjoystick.o ui/psp/paths.c \
+           ui/psp/debugger.o ui/psp/pspstub.o ui/psp/keysyms.o
 
-OBJS=$(BUILD_FUSE) #$(BUILD_PORT)
+OBJS=$(BUILD_FUSE) $(BUILD_PORT)
 
 DEFINES=-DFUSEDATADIR="\"system\"" -DSOUND_BUFFER_SIZE=368 \
         -DPATH_MAX=2048
@@ -71,7 +73,7 @@ CFLAGS=-O2 -G0 -Wall $(BASE_DEFS) $(DEFINES)
 CXXFLAGS=$(CFLAGS) -fno-exceptions -fno-rtti
 ASFLAGS=$(CFLAGS)
 INCDIR=. $(PSPLIB) $(LSP) $(MZLIB) $(LMZ) \
-       peripherals peripherals/ide
+       peripherals peripherals/ide sound
 LIBDIR=$(PSPLIB) $(LSP) $(LMZ) 
 LIBS=-lminizip -lspectrum -lpsplib -lpng -lpspgu -lpsppower \
      -lz -lm -lc -lpspaudio -lpsprtc -lpspwlan -lpspnet_adhoc \
